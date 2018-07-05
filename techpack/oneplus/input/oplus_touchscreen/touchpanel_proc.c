@@ -173,101 +173,6 @@ static const struct file_operations proc_debug_level_ops = {
     .owner = THIS_MODULE,
 };
 
-/*double_tap_enable - For black screen gesture
- * Input:
- * gesture_enable = 0 : disable gesture
- * gesture_enable = 1 : enable gesture when ps is far away
- * gesture_enable = 2 : disable gesture when ps is near
- * gesture_enable = 3 : enable single tap gesture when ps is far away
- */
-static ssize_t proc_gesture_control_write(struct file *file, const char __user *buffer, size_t count, loff_t *ppos)
-{
-	int value = 0;
-	char buf[4] = {0};
-	struct touchpanel_data *ts = PDE_DATA(file_inode(file));
-
-	if (!ts)
-		return count;
-	tp_copy_from_user(buf, sizeof(buf), buffer, count, 2);
-
-
-	TPD_INFO("%s write argc0[0x%x],argc1[0x%x]\n",__func__,buf[0],buf[1]);
-	if (ts->gesture_test_support && ts->gesture_test.flag)
-		return count;
-
-	UpVee_enable = (buf[0] & BIT0)?1:0;
-	DouSwip_enable = (buf[0] & BIT1)?1:0;
-	LeftVee_enable = (buf[0] & BIT3)?1:0;
-	RightVee_enable = (buf[0] & BIT4)?1:0;
-	Circle_enable = (buf[0] & BIT6)?1:0;
-	DouTap_enable = (buf[0] & BIT7)?1:0;
-	Sgestrue_enable = (buf[1] & BIT0)?1:0;
-	Mgestrue_enable = (buf[1] & BIT1)?1:0;
-	Wgestrue_enable = (buf[1] & BIT2)?1:0;
-	SingleTap_enable = (buf[1] & BIT3)?1:0;
-	Enable_gesture = (buf[1] & BIT7)?1:0;
-
-	if (UpVee_enable || DouSwip_enable || LeftVee_enable || RightVee_enable||
-		Circle_enable || DouTap_enable || Sgestrue_enable || Mgestrue_enable||
-		Wgestrue_enable || SingleTap_enable || Enable_gesture) {
-		value = 1;
-	} else {
-		value = 0;
-	}
-	mutex_lock(&ts->mutex);
-	if (ts->gesture_enable != value) {
-		ts->gesture_enable = value;
-		TP_INFO(ts->tp_index, "%s: gesture_enable = %d, is_suspended = %d\n",
-			__func__, ts->gesture_enable, ts->is_suspended);
-		if (ts->is_incell_panel && (ts->suspend_state == TP_RESUME_EARLY_EVENT ||
-			ts->disable_gesture_ctrl) && (ts->tp_resume_order == LCD_TP_RESUME)) {
-			TP_INFO(ts->tp_index, "tp will resume, no need mode_switch in incell panel\n"); /*avoid i2c error or tp rst pulled down in lcd resume*/
-		} else if (ts->is_suspended) {
-			if (ts->fingerprint_underscreen_support &&
-				ts->fp_enable && ts->ts_ops->enable_gesture_mask) {
-			ts->ts_ops->enable_gesture_mask(ts->chip_data,
-				(ts->gesture_enable & 0x01) == 1);
-			} else {
-				operate_mode_switch(ts);
-			}
-		}
-	} else {
-		TP_INFO(ts->tp_index, "%s: do not do same operator :%d\n", __func__, value);
-	}
-	mutex_unlock(&ts->mutex);
-
-	return count;
-}
-
-/*double_tap_enable - For black screen gesture
- * Output:
- * gesture_enable = 0 : disable gesture
- * gesture_enable = 1 : enable gesture when ps is far away
- * gesture_enable = 2 : disable gesture when ps is near
- */
-static ssize_t proc_gesture_control_read(struct file *file, char __user *buffer, size_t count, loff_t *ppos)
-{
-    int ret = 0;
-    char page[PAGESIZE] = {0};
-    struct touchpanel_data *ts = PDE_DATA(file_inode(file));
-
-    if (!ts)
-        return 0;
-
-    TP_DEBUG(ts->tp_index, "double tap enable is: %d\n", ts->gesture_enable);
-    ret = snprintf(page, PAGESIZE - 1, "%d\n", ts->gesture_enable);
-    ret = simple_read_from_buffer(buffer, count, ppos, page, strlen(page));
-
-    return ret;
-}
-
-static const struct file_operations proc_gesture_control_fops = {
-    .write = proc_gesture_control_write,
-    .read  = proc_gesture_control_read,
-    .open  = simple_open,
-    .owner = THIS_MODULE,
-};
-
 /*coordinate - For black screen gesture coordinate*/
 static ssize_t proc_coordinate_read(struct file *file, char __user *buffer, size_t count, loff_t *ppos)
 {
@@ -1423,6 +1328,52 @@ static const struct file_operations proc_aging_test_ops = {
     .open = simple_open,
     .owner = THIS_MODULE,
 };
+
+#define GESTURE_ATTR(name, out) \
+	static ssize_t name##_enable_read_func(struct file *file, char __user *user_buf, size_t count, loff_t *ppos) \
+	{ \
+		int ret = 0; \
+		char page[PAGESIZE]; \
+		ret = sprintf(page, "%d\n", out); \
+		ret = simple_read_from_buffer(user_buf, count, ppos, page, strlen(page)); \
+		return ret; \
+	} \
+	static ssize_t name##_enable_write_func(struct file *file, const char __user *user_buf, size_t count, loff_t *ppos) \
+	{ \
+		int enabled = 0; \
+		char page[PAGESIZE] = {0}; \
+		copy_from_user(page, user_buf, count); \
+		sscanf(page, "%d", &enabled); \
+		out = enabled > 0 ? 1 : 0; \
+		return count; \
+	} \
+	static const struct file_operations name##_enable_proc_fops = { \
+	    .write = name##_enable_write_func, \
+	    .read =  name##_enable_read_func, \
+	    .open = simple_open, \
+	    .owner = THIS_MODULE, \
+	};
+
+GESTURE_ATTR(single_tap, SingleTap_enable);
+GESTURE_ATTR(double_tap, DouTap_enable);
+GESTURE_ATTR(down_arrow, UpVee_enable);
+GESTURE_ATTR(left_arrow, RightVee_enable);
+GESTURE_ATTR(right_arrow, LeftVee_enable);
+GESTURE_ATTR(double_swipe, DouSwip_enable);
+GESTURE_ATTR(letter_o, Circle_enable);
+GESTURE_ATTR(letter_w, Wgestrue_enable);
+GESTURE_ATTR(letter_m, Mgestrue_enable);
+GESTURE_ATTR(letter_s, Sgestrue_enable);
+
+#define CREATE_PROC_NODE(PARENT, NAME, MODE) \
+	prEntry_tmp = proc_create(#NAME, MODE, PARENT, &NAME##_proc_fops); \
+	if (prEntry_tmp == NULL) { \
+		ret = -ENOMEM; \
+		TPD_INFO("%s: Couldn't create proc entry, %d\n", __func__, __LINE__); \
+	}
+
+#define CREATE_GESTURE_NODE(NAME) \
+	CREATE_PROC_NODE(prEntry_tp, NAME##_enable, 0666)
 
 /*******Part4:Debug node Function  Area********************/
 
@@ -2609,15 +2560,16 @@ int init_touchpanel_proc(struct touchpanel_data *ts)
     int ret = 0;
     int i = 0 ;
     struct proc_dir_entry *prEntry_tp = NULL;
+    struct proc_dir_entry *prEntry_tmp = NULL;
     char name[TP_NAME_SIZE_MAX];
 
     tp_proc_node tp_proc_node[] = {
         {"tp_index", 0666, NULL, &proc_tp_index_ops, ts, false, true},
         {"debug_level", 0644, NULL, &proc_debug_level_ops, ts, false, true},
-        {
+        /*{
             "gesture_enable", 0666, NULL, &proc_gesture_control_fops, ts, false,
             ts->black_gesture_support
-        },
+        },*/
         {
             "coordinate", 0444, NULL, &proc_coordinate_fops, ts, false,
             ts->black_gesture_support
@@ -2748,6 +2700,20 @@ int init_touchpanel_proc(struct touchpanel_data *ts)
                 tp_proc_node[i].isCreated = true;
             }
         }
+    }
+
+    //proc files-step3:/proc/touchpanel/double_tap_enable (black gesture related interface)
+    if (ts->black_gesture_support) {
+        CREATE_GESTURE_NODE(single_tap);
+        CREATE_GESTURE_NODE(double_tap);
+        CREATE_GESTURE_NODE(down_arrow);
+        CREATE_GESTURE_NODE(left_arrow);
+        CREATE_GESTURE_NODE(right_arrow);
+        CREATE_GESTURE_NODE(double_swipe);
+        CREATE_GESTURE_NODE(letter_o);
+        CREATE_GESTURE_NODE(letter_w);
+        CREATE_GESTURE_NODE(letter_m);
+        CREATE_GESTURE_NODE(letter_s);
     }
 
     //create debug_info node

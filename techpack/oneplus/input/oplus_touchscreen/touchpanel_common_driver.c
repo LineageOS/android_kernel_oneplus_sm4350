@@ -443,6 +443,8 @@ static void tp_geture_info_transform(struct gesture_info *gesture,
 static void tp_gesture_handle(struct touchpanel_data *ts)
 {
 	struct gesture_info gesture_info_temp;
+	bool enabled = false;
+	int key = -1;
 
 	if (!ts->ts_ops->get_gesture_info) {
 		TP_INFO(ts->tp_index, "not support ts->ts_ops->get_gesture_info callback\n");
@@ -492,16 +494,50 @@ static void tp_gesture_handle(struct touchpanel_data *ts)
 
 #endif // end of CONFIG_OPLUS_TP_APK
 
-	if ((gesture_info_temp.gesture_type == DOU_TAP && DouTap_enable) ||
-		(gesture_info_temp.gesture_type == UP_VEE && UpVee_enable) ||
-		(gesture_info_temp.gesture_type == LEFT_VEE&& LeftVee_enable) ||
-		(gesture_info_temp.gesture_type == RIGHT_VEE && RightVee_enable) ||
-		(gesture_info_temp.gesture_type == CIRCLE_GESTURE && Circle_enable) ||
-		(gesture_info_temp.gesture_type == DOU_SWIP && DouSwip_enable) ||
-		(gesture_info_temp.gesture_type == M_GESTRUE && Mgestrue_enable) ||
-		(gesture_info_temp.gesture_type == S_GESTURE && Sgestrue_enable) ||
-		(gesture_info_temp.gesture_type == SINGLE_TAP && SingleTap_enable) ||
-		(gesture_info_temp.gesture_type == W_GESTURE && Wgestrue_enable)) {
+	switch (gesture_info_temp.gesture_type) {
+		case DOU_TAP:
+			enabled = DouTap_enable;
+			key = KEY_DOUBLE_TAP;
+			break;
+		case UP_VEE:
+			enabled = UpVee_enable;
+			key = KEY_GESTURE_DOWN_ARROW;
+			break;
+		case LEFT_VEE:
+			enabled = LeftVee_enable;
+			key = KEY_GESTURE_RIGHT_ARROW;
+			break;
+		case RIGHT_VEE:
+			enabled = RightVee_enable;
+			key = KEY_GESTURE_LEFT_ARROW;
+			break;
+		case CIRCLE_GESTURE:
+			enabled = Circle_enable;
+			key = KEY_GESTURE_CIRCLE;
+			break;
+		case DOU_SWIP:
+			enabled = DouSwip_enable;
+			key = KEY_GESTURE_TWO_SWIPE;
+			break;
+		case M_GESTRUE:
+			enabled = Mgestrue_enable;
+			key = KEY_GESTURE_M;
+			break;
+		case S_GESTURE:
+			enabled = Sgestrue_enable;
+			key = KEY_GESTURE_S;
+			break;
+		case SINGLE_TAP:
+			enabled = SingleTap_enable;
+			key = KEY_GESTURE_SINGLE_TAP;
+			break;
+		case W_GESTURE:
+			enabled = Wgestrue_enable;
+			key = KEY_GESTURE_W;
+			break;
+	}
+
+	if (enabled) {
 		if (ts->gesture_switch == 1 && ts->is_suspended == 1) {
 			pr_err("[TP]:%s suspending and ps is near so return\n", __func__);
 		} else {
@@ -510,9 +546,9 @@ static void tp_gesture_handle(struct touchpanel_data *ts)
 			tp_memcpy(&ts->gesture, sizeof(ts->gesture), \
 				&gesture_info_temp, sizeof(struct gesture_info), \
 				sizeof(struct gesture_info));
-			input_report_key(ts->input_dev, KEY_F4, 1);
+			input_report_key(ts->input_dev, key, 1);
 			input_sync(ts->input_dev);
-			input_report_key(ts->input_dev, KEY_F4, 0);
+			input_report_key(ts->input_dev, key, 0);
 			input_sync(ts->input_dev);
 		}
 
@@ -1329,6 +1365,16 @@ static int init_input_device(struct touchpanel_data *ts)
 #ifdef CONFIG_OPLUS_TP_APK
 		set_bit(KEY_POWER, ts->input_dev->keybit);
 #endif /*end of CONFIG_OPLUS_TP_APK*/
+		set_bit(KEY_GESTURE_W, ts->input_dev->keybit);
+		set_bit(KEY_GESTURE_M, ts->input_dev->keybit);
+		set_bit(KEY_GESTURE_S, ts->input_dev->keybit);
+		set_bit(KEY_DOUBLE_TAP, ts->input_dev->keybit);
+		set_bit(KEY_GESTURE_CIRCLE, ts->input_dev->keybit);
+		set_bit(KEY_GESTURE_TWO_SWIPE, ts->input_dev->keybit);
+		set_bit(KEY_GESTURE_DOWN_ARROW, ts->input_dev->keybit);
+		set_bit(KEY_GESTURE_LEFT_ARROW, ts->input_dev->keybit);
+		set_bit(KEY_GESTURE_RIGHT_ARROW, ts->input_dev->keybit);
+		set_bit(KEY_GESTURE_SINGLE_TAP, ts->input_dev->keybit);
 	}
 
     snprintf(ts->input_kpd_name, sizeof(ts->input_kpd_name),
@@ -2696,7 +2742,7 @@ int register_common_touch_device(struct touchpanel_data *pdata)
 	ts->loading_fw = false;
 	ts->is_suspended = 0;
 	ts->suspend_state = TP_SPEEDUP_RESUME_COMPLETE;
-	ts->gesture_enable = 0;
+	ts->gesture_enable = 1;
 	ts->fd_enable = 0;
 	ts->fp_enable = 0;
 	ts->fp_info.touch_state = 0;
