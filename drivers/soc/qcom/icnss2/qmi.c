@@ -30,6 +30,10 @@
 #include "debug.h"
 #include "genl.h"
 
+#if IS_ENABLED(CONFIG_CNSS_UTILS)
+#include <net/cnss_utils.h>
+#endif
+
 #define WLFW_SERVICE_WCN_INS_ID_V01	3
 #define WLFW_SERVICE_INS_ID_V01		0
 #define WLFW_CLIENT_ID			0x4b4e454c
@@ -817,6 +821,13 @@ int icnss_wlfw_wlan_mac_req_send_sync(struct icnss_priv *priv,
 	memcpy(req.mac_addr, mac, mac_len);
 #endif
 	req.mac_addr_valid = 1;
+
+#if IS_ENABLED(CONFIG_CNSS_UTILS)
+	ret = cnss_utils_set_wlan_mac_address(req.mac_addr, mac_len);
+	if (ret < 0) {
+		icnss_pr_err("Failed to set cnss utils wlan mac address (non-fatal), err: %d\n", ret);
+	}
+#endif
 
 	ret = qmi_send_request(&priv->qmi, NULL, &txn,
 			       QMI_WLFW_MAC_ADDR_REQ_V01,
