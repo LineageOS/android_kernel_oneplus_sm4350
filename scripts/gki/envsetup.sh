@@ -27,6 +27,11 @@ QCOM_GKI_FRAG=${CONFIGS_DIR}/${PLATFORM_NAME}_GKI.config
 QCOM_QGKI_FRAG=${CONFIGS_DIR}/${PLATFORM_NAME}_QGKI.config
 QCOM_DEBUG_FRAG=${CONFIGS_DIR}/${PLATFORM_NAME}_debug.config
 
+# OnePlus-specific fragments
+OPLUS_GKI_FRAG=${CONFIGS_DIR}/oplus_GKI.config
+OPLUS_QGKI_FRAG=${CONFIGS_DIR}/oplus_QGKI.config
+OPLUS_DEBUG_FRAG=${CONFIGS_DIR}/oplus_debug.config
+
 # For user variant build merge debugfs.config fragment.
 if [ ${TARGET_BUILD_VARIANT} == "user" ]; then
 	QCOM_DEBUG_FS_FRAG=`ls ${CONFIGS_DIR}/debugfs.config 2> /dev/null`
