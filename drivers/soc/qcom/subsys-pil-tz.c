@@ -28,6 +28,9 @@
 
 #include <linux/soc/qcom/smem.h>
 #include <linux/soc/qcom/smem_state.h>
+#ifdef CONFIG_DUMP_REASON
+#include <linux/oem/dump_reason.h>
+#endif
 
 #include "peripheral-loader.h"
 
@@ -761,6 +764,9 @@ static void log_failure_reason(const struct pil_tz_data *d)
 {
 	size_t size;
 	char *smem_reason, reason[MAX_SSR_REASON_LEN];
+#ifdef CONFIG_DUMP_REASON
+	char *function_name;
+#endif
 	const char *name = d->subsys_desc.name;
 
 	if (d->smem_id == -1)
@@ -779,6 +785,13 @@ static void log_failure_reason(const struct pil_tz_data *d)
 
 	strlcpy(reason, smem_reason, min(size, (size_t)MAX_SSR_REASON_LEN));
 	pr_err("%s subsystem failure reason: %s.\n", name, reason);
+	subsys_store_crash_reason(d->subsys, reason);
+
+#ifdef CONFIG_DUMP_REASON
+	function_name = parse_function_builtin_return_address(
+			(unsigned long)__builtin_return_address(0));
+	save_dump_reason_to_smem(reason, function_name);
+#endif
 }
 
 static int subsys_shutdown(const struct subsys_desc *subsys, bool force_stop)
