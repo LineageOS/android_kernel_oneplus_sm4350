@@ -112,6 +112,9 @@ static void dma_buf_release(struct dentry *dentry)
 	if (unlikely(!dmabuf))
 		return;
 
+	if (!dmabuf)
+		return;
+
 	msm_dma_buf = to_msm_dma_buf(dmabuf);
 
 	BUG_ON(dmabuf->vmapping_counter);
