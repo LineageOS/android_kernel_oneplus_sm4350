@@ -303,9 +303,14 @@ out_micb_en:
 					  &mbhc->event_state)))
 			/* enable pullup and cs, disable mb */
 			wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_PULLUP);
-		else
-			/* enable current source and disable mb, pullup*/
-			wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_CS);
+  		else {
+			pr_info("%s: current_plug %d\n", __func__, mbhc->current_plug);
+			if (mbhc->current_plug == MBHC_PLUG_TYPE_HEADSET) {
+				wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_MB);
+			} else {
+				wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_CS);
+			}
+		}
 
 		/* configure cap settings properly when micbias is disabled */
 		if (mbhc->mbhc_cb->set_cap_mode)
@@ -575,10 +580,16 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 		if (wcd_cancel_btn_work(mbhc)) {
 			pr_debug("%s: button press is canceled\n", __func__);
 		} else if (mbhc->buttons_pressed) {
-			pr_debug("%s: release of button press%d\n",
+			pr_info("%s: release of button press%d\n",
 				 __func__, jack_type);
-			wcd_mbhc_jack_report(mbhc, &mbhc->button_jack, 0,
-					    mbhc->buttons_pressed);
+			/*
+				Modified for supporting line control earphone volume key
+				up/down */
+			if (mbhc->buttons_pressed & (SND_JACK_BTN_2 | SND_JACK_BTN_3)) {
+				wcd_mbhc_jack_report(mbhc, &mbhc->button_jack, 0,
+						mbhc->buttons_pressed);
+			}
+
 			mbhc->buttons_pressed &=
 				~WCD_MBHC_JACK_BUTTON_MASK;
 		}
@@ -601,7 +612,7 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 
 		mbhc->hph_type = WCD_MBHC_HPH_NONE;
 		mbhc->zl = mbhc->zr = 0;
-		pr_debug("%s: Reporting removal %d(%x)\n", __func__,
+		pr_info("%s: Reporting removal %d(%x)\n", __func__,
 			 jack_type, mbhc->hph_status);
 		wcd_mbhc_jack_report(mbhc, &mbhc->headset_jack,
 				mbhc->hph_status, WCD_MBHC_JACK_MASK);
@@ -763,11 +774,14 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 		    mbhc->mbhc_cb->mbhc_micb_ramp_control)
 			mbhc->mbhc_cb->mbhc_micb_ramp_control(component, false);
 
-		pr_debug("%s: Reporting insertion %d(%x)\n", __func__,
-			 jack_type, mbhc->hph_status);
-		wcd_mbhc_jack_report(mbhc, &mbhc->headset_jack,
-				    (mbhc->hph_status | SND_JACK_MECHANICAL),
-				    WCD_MBHC_JACK_MASK);
+		pr_info("%s: [1:headphone 3:headset 4:lineout]\n", __func__);
+		pr_info("%s: Reporting insertion jack_type=%d, (hph_status=0x%x)\n",
+			__func__, jack_type, mbhc->hph_status);
+		if (jack_type != SND_JACK_LINEOUT) {
+			wcd_mbhc_jack_report(mbhc, &mbhc->headset_jack,
+				(mbhc->hph_status | SND_JACK_MECHANICAL),
+				WCD_MBHC_JACK_MASK);
+		}
 		wcd_mbhc_clr_and_turnon_hph_padac(mbhc);
 	}
 	pr_debug("%s: leave hph_status %x\n", __func__, mbhc->hph_status);
@@ -931,7 +945,11 @@ static void wcd_mbhc_swch_irq_handler(struct wcd_mbhc *mbhc)
 	struct snd_soc_component *component = mbhc->component;
 	enum snd_jack_types jack_type;
 
-	dev_dbg(component->dev, "%s: enter\n", __func__);
+	if (!mbhc->mbhc_cfg->enable_usbc_analog) {
+		cancel_delayed_work_sync(&mbhc->hp_detect_work);
+	}
+
+	dev_info(component->dev, "%s: enter\n", __func__);
 	WCD_MBHC_RSC_LOCK(mbhc);
 	mbhc->in_swch_irq_handler = true;
 
@@ -995,8 +1013,15 @@ static void wcd_mbhc_swch_irq_handler(struct wcd_mbhc *mbhc)
 			mbhc->mbhc_cb->enable_mb_source(mbhc, true);
 		mbhc->btn_press_intr = false;
 		mbhc->is_btn_press = false;
-		if (mbhc->mbhc_fn)
-			mbhc->mbhc_fn->wcd_mbhc_detect_plug_type(mbhc);
+
+		if (mbhc->mbhc_fn) {
+			if (mbhc->mbhc_cfg->enable_usbc_analog) {
+				mbhc->mbhc_fn->wcd_mbhc_detect_plug_type(mbhc);
+			} else {
+				schedule_delayed_work(&mbhc->hp_detect_work, msecs_to_jiffies(400));
+			}
+		}
+
 	} else if ((mbhc->current_plug != MBHC_PLUG_TYPE_NONE)
 			&& !detection_type) {
 		/* Disable external voltage source to micbias if present */
@@ -1073,6 +1098,22 @@ static void wcd_mbhc_swch_irq_handler(struct wcd_mbhc *mbhc)
 		}
 
 	} else if (!detection_type) {
+	    if (mbhc->micbias_enable) {
+	        pr_info("%s: Need to disable MIC_BIAS_2\n", __func__);
+	        if (mbhc->mbhc_cb->mbhc_micbias_control)
+	            mbhc->mbhc_cb->mbhc_micbias_control(
+	                    component, MIC_BIAS_2,
+	                    MICB_DISABLE);
+	        if (mbhc->mbhc_cb->mbhc_micb_ctrl_thr_mic)
+	            mbhc->mbhc_cb->mbhc_micb_ctrl_thr_mic(
+	                    component,
+	                    MIC_BIAS_2, false);
+	        if (mbhc->mbhc_cb->set_micbias_value) {
+	            mbhc->mbhc_cb->set_micbias_value(component);
+	            WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_MICB_CTRL, 0);
+	        }
+	        mbhc->micbias_enable = false;
+	    }
 		/* Disable external voltage source to micbias if present */
 		if (mbhc->mbhc_cb->enable_mb_source)
 			mbhc->mbhc_cb->enable_mb_source(mbhc, false);
@@ -1269,9 +1310,7 @@ static irqreturn_t wcd_mbhc_release_handler(int irq, void *data)
 	 */
 	if (mbhc->mbhc_detection_logic == WCD_DETECTION_LEGACY &&
 		mbhc->current_plug == MBHC_PLUG_TYPE_HEADPHONE) {
-		wcd_mbhc_find_plug_and_report(mbhc, MBHC_PLUG_TYPE_HEADSET);
 		goto exit;
-
 	}
 	if (mbhc->buttons_pressed & WCD_MBHC_JACK_BUTTON_MASK) {
 		ret = wcd_cancel_btn_work(mbhc);
@@ -1402,8 +1441,11 @@ static int wcd_mbhc_initialise(struct wcd_mbhc *mbhc)
 						      HS_PULLUP_I_DEFAULT);
 	else if (mbhc->mbhc_cb->hph_pull_up_control)
 		mbhc->mbhc_cb->hph_pull_up_control(component, I_DEFAULT);
-	else
-		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_HS_L_DET_PULL_UP_CTRL, 3);
+	else {
+		pr_info("%s: default disable pull up for detection\n", __func__);
+		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_HS_L_DET_PULL_UP_CTRL, 0);
+	}
+
 
 	/* Configure for moisture detection when duty cycle is not enabled.
 	 * Otherwise disable moisture detection.
@@ -1779,6 +1821,10 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_component *component,
 	const char *gnd_switch = "qcom,msm-mbhc-gnd-swh";
 	const char *hs_thre = "qcom,msm-mbhc-hs-mic-max-threshold-mv";
 	const char *hph_thre = "qcom,msm-mbhc-hs-mic-min-threshold-mv";
+	u32 cross_conn = 0;
+	const char *mbhc_cross_conn = "oplus,mbhc-check-cross-conn";
+	u32 headset_micbias_alwayon = 0;
+	const char *mbhc_headset_micbias_alwayon = "oplus,mbhc-headset-micbias-alwayon";
 
 	pr_debug("%s: enter\n", __func__);
 
@@ -1821,6 +1867,36 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_component *component,
 		mbhc->moist_vref = hph_moist_config[0];
 		mbhc->moist_iref = hph_moist_config[1];
 		mbhc->moist_rref = hph_moist_config[2];
+	}
+
+	ret = of_property_read_u32(card->dev->of_node, mbhc_cross_conn,
+				&cross_conn);
+	if (ret) {
+		dev_info(card->dev,
+			"%s: missing %s in dt node\n", __func__, mbhc_cross_conn);
+		mbhc->need_cross_conn = false;
+	} else {
+		dev_info(card->dev, "%s: cross_conn %d\n", __func__, cross_conn);
+		if (cross_conn) {
+			mbhc->need_cross_conn = true;
+		} else {
+			mbhc->need_cross_conn = false;
+		}
+	}
+
+	ret = of_property_read_u32(card->dev->of_node, mbhc_headset_micbias_alwayon,
+				&headset_micbias_alwayon);
+	if (ret) {
+		dev_info(card->dev,
+			"%s: missing %s in dt node\n", __func__, mbhc_headset_micbias_alwayon);
+		mbhc->headset_micbias_alwayon = false;
+	} else {
+		dev_info(card->dev, "%s: headset_micbias_alwayon %d\n", __func__, headset_micbias_alwayon);
+		if (headset_micbias_alwayon) {
+			mbhc->headset_micbias_alwayon= true;
+		} else {
+			mbhc->headset_micbias_alwayon = false;
+		}
 	}
 
 	mbhc->in_swch_irq_handler = false;

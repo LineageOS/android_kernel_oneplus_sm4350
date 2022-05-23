@@ -41,6 +41,9 @@
 #include "holi-port-config.h"
 #include "msm_holi_dailink.h"
 
+#include "codecs/sia81xx/sia81xx_aux_dev_if.h"
+#include "codecs/aw87xxx/aw87xxx.h"
+
 #define DRV_NAME "holi-asoc-snd"
 #define __CHIPSET__ "HOLI "
 #define MSM_DAILINK_NAME(name) (__CHIPSET__#name)
@@ -72,7 +75,7 @@
 #define CODEC_EXT_CLK_RATE          9600000
 #define ADSP_STATE_READY_TIMEOUT_MS 3000
 #define DEV_NAME_STR_LEN            32
-#define WCD_MBHC_HS_V_MAX           1600
+#define WCD_MBHC_HS_V_MAX           1700
 
 #define TDM_CHANNEL_MAX		8
 #define DEV_NAME_STR_LEN	32
@@ -576,6 +579,21 @@ static char const *bt_sample_rate_tx_text[] = {"KHZ_8", "KHZ_16",
 					"KHZ_88P2", "KHZ_96"};
 static const char *const afe_loopback_tx_ch_text[] = {"One", "Two"};
 
+
+#ifdef CONFIG_SND_SOC_AW87XXX
+enum audio_pa_status_cur {
+	PA_STATUS_UNINIT = -1,
+	PA_STATUS_SIA81XX,
+	PA_STATUS_AW87XXX,
+	PA_STATUS_INVALID
+};
+static const char *const mode_function_text[] = { "Off", "Music", "Voice", "Fm", "Rcv" };
+static const char *const audio_pa_name[] = {"sia81xx", "aw87xxx" };
+static enum audio_pa_status_cur audio_pa_sate = PA_STATUS_UNINIT;
+SOC_ENUM_SINGLE_EXT_DECL(mode_function,mode_function_text);
+SOC_ENUM_SINGLE_EXT_DECL(audio_pa,audio_pa_name);
+#endif
+
 static SOC_ENUM_SINGLE_EXT_DECL(usb_rx_sample_rate, usb_sample_rate_text);
 static SOC_ENUM_SINGLE_EXT_DECL(usb_tx_sample_rate, usb_sample_rate_text);
 static SOC_ENUM_SINGLE_EXT_DECL(usb_rx_format, bit_format_text);
@@ -746,7 +764,7 @@ static struct wcd_mbhc_config wcd_mbhc_cfg = {
 	.mbhc_micbias = MIC_BIAS_2,
 	.anc_micbias = MIC_BIAS_2,
 	.enable_anc_mic_detect = false,
-	.moisture_duty_cycle_en = true,
+	.moisture_duty_cycle_en = false,
 };
 
 /* set audio task affinity to core 1 & 2 */
@@ -3217,6 +3235,71 @@ static int msm_bt_sample_rate_tx_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+#ifdef CONFIG_SND_SOC_AW87XXX
+static int aw87xxx_mode_get_0(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	unsigned char current_mode;
+
+	current_mode = aw87xxx_show_current_mode(0);
+	ucontrol->value.integer.value[0] = current_mode;
+
+	pr_info("%s: get mode:%d\n", __func__, current_mode);
+	return 0;
+}
+
+static int aw87xxx_mode_set_0(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	int ret = 0;
+	unsigned char set_mode;
+
+	set_mode = ucontrol->value.integer.value[0];
+
+	ret = aw87xxx_audio_scene_load(set_mode, 0);
+	if (ret < 0) {
+		pr_err("%s: mode:%d set failed\n", __func__, set_mode);
+		return -EPERM;
+	}
+
+	pr_info("%s: set mode:%d success", __func__, set_mode);
+	return 0;
+}
+
+static int audio_check_pa_chip_type()
+{
+	int pa_state = PA_STATUS_SIA81XX;
+
+	if (audio_pa_sate == PA_STATUS_UNINIT) {
+		if (1 == soc_check_sia81xx_status()) {
+			pa_state = PA_STATUS_SIA81XX;
+			pr_info("%s: sia81xx device is available \r\n", __func__);
+		} else if (1 == soc_check_aw87xxx_status()) {
+			pa_state = PA_STATUS_AW87XXX;
+			pr_info("%s: aw87xxx device is available \r\n", __func__);
+		} else {
+			pa_state = PA_STATUS_SIA81XX;
+			pr_err("%s not available pa device.\n", __func__);
+		}
+		audio_pa_sate = pa_state;
+	} else {
+		pa_state = audio_pa_sate;
+	}
+	return pa_state;
+}
+static int audio_pa_status_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	int pa_index;
+
+	pa_index = audio_check_pa_chip_type();
+	ucontrol->value.integer.value[0] = pa_index;
+
+	pr_info("%s: get audio pa is %s.", __func__, audio_pa_name[pa_index]);
+	return 0;
+}
+#endif
+
 static const struct snd_kcontrol_new msm_int_wcd937x_snd_controls[] = {
 	SOC_ENUM_EXT("RX_CDC_DMA_RX_0 Format", rx_cdc_dma_rx_0_format,
 			cdc_dma_rx_format_get, cdc_dma_rx_format_put),
@@ -3591,6 +3674,12 @@ static const struct snd_kcontrol_new msm_common_snd_controls[] = {
 			msm_vi_feed_tx_ch_get, msm_vi_feed_tx_ch_put),
 	SOC_SINGLE_MULTI_EXT("TDM Slot Map", SND_SOC_NOPM, 0, 255, 0,
 			TDM_MAX_SLOTS + MAX_PATH, NULL, tdm_slot_map_put),
+#ifdef CONFIG_SND_SOC_AW87XXX
+	SOC_ENUM_EXT("aw87xxx_mode_switch_0", mode_function,
+			aw87xxx_mode_get_0, aw87xxx_mode_set_0),
+	SOC_ENUM_EXT("audio_pa_status", audio_pa,
+			audio_pa_status_get, NULL),
+#endif
 };
 
 static const struct snd_kcontrol_new msm_snd_controls[] = {
@@ -4752,15 +4841,25 @@ static void *def_wcd_mbhc_cal(void)
 	btn_cfg = WCD_MBHC_CAL_BTN_DET_PTR(wcd_mbhc_cal);
 	btn_high = ((void *)&btn_cfg->_v_btn_low) +
 		(sizeof(btn_cfg->_v_btn_low[0]) * btn_cfg->num_btn);
-
+#if 0
 	btn_high[0] = 75;
-	btn_high[1] = 150;
+	btn_high[1] = 120;
 	btn_high[2] = 237;
 	btn_high[3] = 500;
 	btn_high[4] = 500;
 	btn_high[5] = 500;
 	btn_high[6] = 500;
 	btn_high[7] = 500;
+#else
+	btn_high[0] = 130;		/* Hook ,0 ~ 160 Ohm*/
+	btn_high[1] = 131;
+	btn_high[2] = 253;		/* Volume + ,160 ~ 360 Ohm*/
+	btn_high[3] = 425;		/* Volume - ,360 ~ 680 Ohm*/
+	btn_high[4] = 426;
+	btn_high[5] = 426;
+	btn_high[6] = 426;
+	btn_high[7] = 426;
+#endif
 
 	return wcd_mbhc_cal;
 }
@@ -6709,6 +6808,18 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 		ret = -EPROBE_DEFER;
 		goto err;
 	}
+#ifdef CONFIG_SND_SOC_AW87XXX
+	//should retry
+	if (soc_check_sia81xx_status() == 1) {
+#endif
+		ret = soc_aux_init_only_sia81xx(pdev, card);
+		if (ret) {
+			pr_err("%s soc_aux_init_only_sia81xx return error.\n", __func__);
+			goto err;
+		}
+#ifdef CONFIG_SND_SOC_AW87XXX
+	}
+#endif
 
 	ret = devm_snd_soc_register_card(&pdev->dev, card);
 	if (ret == -EPROBE_DEFER) {
@@ -6838,6 +6949,10 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 
 	return 0;
 err:
+#ifdef CONFIG_SND_SOC_AW87XXX
+	audio_pa_sate = PA_STATUS_UNINIT;
+	soc_aux_deinit_only_sia81xx(pdev, card);
+#endif
 	devm_kfree(&pdev->dev, pdata);
 	return ret;
 }
@@ -6846,11 +6961,14 @@ static int msm_asoc_machine_remove(struct platform_device *pdev)
 {
 	struct snd_soc_card *card = platform_get_drvdata(pdev);
 
+#ifdef CONFIG_SND_SOC_AW87XXX
+	audio_pa_sate = PA_STATUS_UNINIT;
+	//soc_aux_deinit_only_sia81xx(pdev, card);
+#endif
 	snd_event_master_deregister(&pdev->dev);
 	snd_soc_unregister_card(card);
 	msm_i2s_auxpcm_deinit();
 	msm_audio_remove_qos_request();
-
 	return 0;
 }
 
