@@ -15,6 +15,9 @@
 #include "sde_dbg.h"
 #include "sde_dsc_helper.h"
 #include "sde_vdc_helper.h"
+#if defined(CONFIG_PXLW_IRIS)
+bool iris_is_chip_supported(void);
+#endif
 
 #define MMSS_MISC_CLAMP_REG_OFF           0x0014
 #define DSI_CTRL_DYNAMIC_FORCE_ON         (0x23F|BIT(8)|BIT(9)|BIT(11)|BIT(21))
@@ -742,6 +745,11 @@ void dsi_ctrl_hw_cmn_kickoff_command(struct dsi_ctrl_hw *ctrl,
 	reg = DSI_R32(ctrl, DSI_DMA_FIFO_CTRL);
 	reg |= BIT(20);/* Disable write watermark*/
 	reg |= BIT(16);/* Disable read watermark */
+#if defined(CONFIG_PXLW_IRIS)
+	/* set DMA FIFO read watermark to 15/16 full */
+	if (iris_is_chip_supported())
+		reg = 0x33;
+#endif
 
 	DSI_W32(ctrl, DSI_DMA_FIFO_CTRL, reg);
 	DSI_W32(ctrl, DSI_DMA_CMD_OFFSET, cmd->offset);
@@ -935,33 +943,6 @@ u32 dsi_ctrl_hw_cmn_get_cmd_read_data(struct dsi_ctrl_hw *ctrl,
 	*hw_read_cnt = read_cnt;
 	DSI_CTRL_HW_DBG(ctrl, "Read %d bytes\n", rx_byte);
 	return rx_byte;
-}
-
-/**
- * poll_slave_dma_status() - API to clear poll DMA status
- * @ctrl:          Pointer to the controller host hardware.
- *
- * Return: DMA status.
- */
-u32 dsi_ctrl_hw_cmn_poll_slave_dma_status(struct dsi_ctrl_hw *ctrl)
-{
-	int rc = 0;
-	u32 status;
-	u32 const delay_us = 10;
-	u32 const timeout_us = 5000;
-
-	rc = readl_poll_timeout_atomic(ctrl->base + DSI_INT_CTRL,
-				      status,
-				      ((status & DSI_CMD_MODE_DMA_DONE)
-					> 0),
-				      delay_us,
-				      timeout_us);
-	if (rc) {
-		DSI_CTRL_HW_DBG(ctrl, "DSI1 CMD_MODE_DMA_DONE failed\n");
-		status = 0;
-	}
-
-	return status;
 }
 
 /**

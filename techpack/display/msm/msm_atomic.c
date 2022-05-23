@@ -523,6 +523,8 @@ static void complete_commit(struct msm_commit *c)
 
 	drm_atomic_state_put(state);
 
+    priv->commit_end_time =  ktime_get(); //commit end time
+
 	commit_destroy(c);
 }
 
@@ -687,6 +689,16 @@ int msm_atomic_commit(struct drm_device *dev,
 			drm_atomic_set_fence_for_plane(new_plane_state, fence);
 		}
 		c->plane_mask |= (1 << drm_plane_index(plane));
+	}
+
+	/* Protection for prepare_fence callback */
+	retry:
+		ret = drm_modeset_lock(&state->dev->mode_config.connection_mutex,
+						state->acquire_ctx);
+
+	if (ret == -EDEADLK) {
+		drm_modeset_backoff(state->acquire_ctx);
+		goto retry;
 	}
 
 	/*

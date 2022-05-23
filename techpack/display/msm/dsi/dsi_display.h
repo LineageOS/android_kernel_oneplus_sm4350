@@ -283,6 +283,11 @@ struct dsi_display {
 
 	u32 te_source;
 	u32 clk_gating_config;
+#if defined(CONFIG_PXLW_IRIS)
+	u32 off;
+	u32 cnt;
+	u8 cmd_data_type;
+#endif
 	bool queue_cmd_waits;
 	struct workqueue_struct *dma_cmd_workq;
 
@@ -625,6 +630,10 @@ int dsi_display_set_tpg_state(struct dsi_display *display, bool enable);
 
 int dsi_display_clock_gate(struct dsi_display *display, bool enable);
 int dsi_dispaly_static_frame(struct dsi_display *display, bool enable);
+uint64_t dsi_display_get_serial_number_id(uint64_t serial_number);
+
+int dsi_display_get_serial_number_AT(struct drm_connector *connector);
+
 
 /**
  * dsi_display_get_drm_panel() - get drm_panel from display.
@@ -776,7 +785,24 @@ int dsi_display_cont_splash_res_disable(void *display);
  */
 int dsi_display_get_panel_vfp(void *display,
 	int h_active, int v_active);
+extern struct drm_panel *lcd_active_panel;
+extern int drm_panel_notifier_call_chain(struct drm_panel *panel,
+	unsigned long val, void *v);
+#ifdef CONFIG_F2FS_OF2FS
+extern int f2fs_panel_notifier_call_chain(unsigned long val, void *v);
+#endif
+int dsi_display_cmd_engine_enable(struct dsi_display *display);
+int dsi_display_cmd_engine_disable(struct dsi_display *display);
 
+struct dsi_display *get_main_display(void);
+extern char gamma_para[2][413];
+int dsi_display_register_read(struct dsi_display *dsi_display, unsigned char registers, char *buf, size_t count);
+int dsi_display_gamma_read(struct dsi_display *dsi_display);
+void dsi_display_gamma_read_work(struct work_struct *work);
+extern struct delayed_work *sde_esk_check_delayed_work;
+int dsi_display_get_dimming_gamma_para(struct dsi_display *dsi_display, struct dsi_panel *panel);
+
+int dsi_display_back_ToolsType_ANA6706(u8 *buff);
 /**
  * dsi_display_dump_clks_state() - dump clocks state to console
  * @display:         Handle to display

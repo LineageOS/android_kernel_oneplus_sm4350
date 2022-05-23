@@ -21,6 +21,9 @@
 #include "dsi_panel.h"
 
 #include "sde_dbg.h"
+#if defined(CONFIG_PXLW_IRIS)
+#include "iris/dsi_iris5_api.h"
+#endif
 
 #define DSI_CTRL_DEFAULT_LABEL "MDSS DSI CTRL"
 
@@ -34,7 +37,7 @@
 
 #define DSI_CTRL_DEBUG(c, fmt, ...)	DRM_DEV_DEBUG(NULL, "[msm-dsi-debug]: %s: "\
 		fmt, c ? c->name : "inv", ##__VA_ARGS__)
-#define DSI_CTRL_ERR(c, fmt, ...)	DRM_DEV_ERROR(NULL, "[msm-dsi-error]: %s: "\
+#define DSI_CTRL_ERR(c, fmt, ...)	DRM_DEV_ERROR(NULL, "%s: "\
 		fmt, c ? c->name : "inv", ##__VA_ARGS__)
 #define DSI_CTRL_INFO(c, fmt, ...)	DRM_DEV_INFO(NULL, "[msm-dsi-info]: %s: "\
 		fmt, c->name, ##__VA_ARGS__)
@@ -1277,6 +1280,13 @@ int dsi_message_validate_tx_mode(struct dsi_ctrl *dsi_ctrl,
 
 	if (*flags & DSI_CTRL_CMD_FETCH_MEMORY) {
 		if ((dsi_ctrl->cmd_len + cmd_len + 4) > SZ_4K) {
+#if defined(CONFIG_PXLW_IRIS)
+			if (iris_is_chip_supported()) {
+				if ((dsi_ctrl->cmd_len + cmd_len + 4) <= SZ_256K)
+					return rc;
+				DSI_CTRL_ERR(dsi_ctrl, "Cannot transfer, size is greater than 256K\n");
+			}
+#endif
 			DSI_CTRL_ERR(dsi_ctrl, "Cannot transfer,size is greater than 4096\n");
 			return -ENOTSUPP;
 		}
@@ -1401,6 +1411,10 @@ static void dsi_kickoff_msg_tx(struct dsi_ctrl *dsi_ctrl,
 
 	if (flags & DSI_CTRL_CMD_DEFER_TRIGGER) {
 		if (flags & DSI_CTRL_CMD_FETCH_MEMORY) {
+#if defined(CONFIG_PXLW_IRIS)
+			if (iris_is_chip_supported())
+				msm_gem_sync(dsi_ctrl->tx_cmd_buf);
+#endif
 			if (flags & DSI_CTRL_CMD_NON_EMBEDDED_MODE) {
 				dsi_hw_ops.kickoff_command_non_embedded_mode(
 							&dsi_ctrl->hw,
@@ -1505,39 +1519,6 @@ static void dsi_ctrl_validate_msg_flags(struct dsi_ctrl *dsi_ctrl,
 		*flags &= ~DSI_CTRL_CMD_ASYNC_WAIT;
 }
 
-/**
- * dsi_ctrl_clear_slave_dma_status -   API to clear slave DMA status
- * @dsi_ctrl:                   DSI controller handle.
- * @flags:                      Modifiers
- */
-static void dsi_ctrl_clear_slave_dma_status(struct dsi_ctrl *dsi_ctrl, u32 flags)
-{
-	struct dsi_ctrl_hw_ops dsi_hw_ops;
-	u32 status = 0;
-
-	if (!dsi_ctrl) {
-		DSI_CTRL_ERR(dsi_ctrl, "Invalid params\n");
-		return;
-	}
-
-	/* Return if this is not the last command */
-	if (!(flags & DSI_CTRL_CMD_LAST_COMMAND))
-		return;
-
-	SDE_EVT32(dsi_ctrl->cell_index, SDE_EVTLOG_FUNC_ENTRY);
-
-	dsi_hw_ops = dsi_ctrl->hw.ops;
-
-	status = dsi_hw_ops.poll_slave_dma_status(&dsi_ctrl->hw);
-
-	if (status) {
-		status |= (DSI_CMD_MODE_DMA_DONE | DSI_BTA_DONE);
-		dsi_hw_ops.clear_interrupt_status(&dsi_ctrl->hw,
-						status);
-		SDE_EVT32(dsi_ctrl->cell_index, status);
-	}
-}
-
 static int dsi_message_tx(struct dsi_ctrl *dsi_ctrl,
 			  const struct mipi_dsi_msg *msg,
 			  u32 *flags)
@@ -1569,9 +1550,6 @@ static int dsi_message_tx(struct dsi_ctrl *dsi_ctrl,
 
 	if (dsi_ctrl->dma_wait_queued)
 		dsi_ctrl_flush_cmd_dma_queue(dsi_ctrl);
-
-	if (!(*flags & DSI_CTRL_CMD_BROADCAST_MASTER))
-		dsi_ctrl_clear_slave_dma_status(dsi_ctrl, *flags);
 
 	if (*flags & DSI_CTRL_CMD_NON_EMBEDDED_MODE) {
 		cmd_mem.offset = dsi_ctrl->cmd_buffer_iova;
@@ -1640,7 +1618,12 @@ static int dsi_message_tx(struct dsi_ctrl *dsi_ctrl,
 
 		cmdbuf = (u8 *)(dsi_ctrl->vaddr);
 
+#if defined(CONFIG_PXLW_IRIS)
+		if (!iris_is_chip_supported())
+			msm_gem_sync(dsi_ctrl->tx_cmd_buf);
+#else
 		msm_gem_sync(dsi_ctrl->tx_cmd_buf);
+#endif
 		for (cnt = 0; cnt < length; cnt++)
 			cmdbuf[dsi_ctrl->cmd_len + cnt] = buffer[cnt];
 

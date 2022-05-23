@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2015-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015-2020, The Linux Foundation. All rights reserved.
  */
 
 #ifndef _SDE_HW_CATALOG_H
@@ -47,7 +47,6 @@
 #define SDE_HW_VER_660	SDE_HW_VER(6, 6, 0) /* holi */
 #define SDE_HW_VER_670	SDE_HW_VER(6, 7, 0) /* shima */
 #define SDE_HW_VER_700	SDE_HW_VER(7, 0, 0) /* lahaina */
-#define SDE_HW_VER_720	SDE_HW_VER(7, 2, 0) /* yupik */
 
 /* Avoid using below IS_XXX macros outside catalog, use feature bit instead */
 #define IS_SDE_MAJOR_SAME(rev1, rev2)   \
@@ -72,7 +71,6 @@
 #define IS_HOLI_TARGET(rev) IS_SDE_MAJOR_MINOR_SAME((rev), SDE_HW_VER_660)
 #define IS_SHIMA_TARGET(rev) IS_SDE_MAJOR_MINOR_SAME((rev), SDE_HW_VER_670)
 #define IS_LAHAINA_TARGET(rev) IS_SDE_MAJOR_MINOR_SAME((rev), SDE_HW_VER_700)
-#define IS_YUPIK_TARGET(rev) IS_SDE_MAJOR_MINOR_SAME((rev), SDE_HW_VER_720)
 
 #define SDE_HW_BLK_NAME_LEN	16
 
@@ -333,7 +331,6 @@ enum {
 	SDE_DISP_SECONDARY_PREF,
 	SDE_DISP_CWB_PREF,
 	SDE_MIXER_COMBINED_ALPHA,
-	SDE_MIXER_IS_VIRTUAL,
 	SDE_MIXER_MAX
 };
 
@@ -1541,7 +1538,6 @@ struct sde_mdss_cfg {
 
 	u32 mixer_count;
 	struct sde_lm_cfg mixer[MAX_BLOCKS];
-	u32 cwb_virtual_mixers_mask;
 
 	struct sde_dspp_top_cfg dspp_top;
 

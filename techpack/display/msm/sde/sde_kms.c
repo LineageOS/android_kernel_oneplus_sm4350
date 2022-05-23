@@ -57,6 +57,9 @@
 #include "soc/qcom/secure_buffer.h"
 #include <linux/qtee_shmbridge.h>
 #include <linux/haven/hh_irq_lend.h>
+#if defined(CONFIG_PXLW_IRIS) || defined(CONFIG_PXLW_SOFT_IRIS)
+#include "iris/dsi_iris5_api.h"
+#endif
 
 #define CREATE_TRACE_POINTS
 #include "sde_trace.h"
@@ -1581,7 +1584,7 @@ static void sde_kms_prepare_fence(struct msm_kms *kms,
 {
 	struct drm_crtc *crtc;
 	struct drm_crtc_state *old_crtc_state;
-	int i, rc;
+	int i;
 
 	if (!kms || !old_state || !old_state->dev || !old_state->acquire_ctx) {
 		SDE_ERROR("invalid argument(s)\n");
@@ -1589,15 +1592,6 @@ static void sde_kms_prepare_fence(struct msm_kms *kms,
 	}
 
 	SDE_ATRACE_BEGIN("sde_kms_prepare_fence");
-retry:
-	/* attempt to acquire ww mutex for connection */
-	rc = drm_modeset_lock(&old_state->dev->mode_config.connection_mutex,
-			       old_state->acquire_ctx);
-
-	if (rc == -EDEADLK) {
-		drm_modeset_backoff(old_state->acquire_ctx);
-		goto retry;
-	}
 
 	/* old_state actually contains updated crtc pointers */
 	for_each_old_crtc_in_state(old_state, crtc, old_crtc_state, i) {
@@ -1747,6 +1741,7 @@ static int _sde_kms_setup_displays(struct drm_device *dev,
 		.cmd_receive = dsi_display_cmd_receive,
 		.install_properties = NULL,
 		.set_allowed_mode_switch = dsi_conn_set_allowed_mode_switch,
+		.prepare_commit = dsi_display_pre_commit,
 		.get_qsync_min_fps = dsi_display_get_qsync_min_fps,
 		.prepare_commit = dsi_conn_prepare_commit,
 	};
@@ -3760,6 +3755,9 @@ static const struct msm_kms_funcs kms_funcs = {
 	.check_for_splash = sde_kms_check_for_splash,
 	.get_mixer_count = sde_kms_get_mixer_count,
 	.get_dsc_count = sde_kms_get_dsc_count,
+#if defined(CONFIG_PXLW_IRIS) || defined(CONFIG_PXLW_SOFT_IRIS)
+	.iris_operate = iris_sde_kms_iris_operate,
+#endif
 };
 
 static int _sde_kms_mmu_destroy(struct sde_kms *sde_kms)

@@ -543,6 +543,7 @@ struct sde_connector {
 	u8 hdr_plus_app_ver;
 	u32 qsync_mode;
 	bool qsync_updated;
+	u32 qsync_min_fps;
 
 	bool colorspace_updated;
 
@@ -593,6 +594,15 @@ struct sde_connector {
  */
 #define sde_connector_get_qsync_mode(C) \
 	((C) ? to_sde_connector((C))->qsync_mode : 0)
+
+
+/**
+ * sde_connector_get_qsync_min_fps - get sde connector's qsync_min_fps
+ * @C: Pointer to drm connector structure
+ * Returns: Current cached qsync_min_fps for given connector
+ */
+#define sde_connector_get_qsync_min_fps(C) \
+	((C) ? to_sde_connector((C))->qsync_min_fps : 0)
 
 /**
  * sde_connector_get_propinfo - get sde connector's property info pointer
