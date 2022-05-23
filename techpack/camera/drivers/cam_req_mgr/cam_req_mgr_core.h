@@ -42,6 +42,16 @@
 #define VERSION_2  2
 #define CAM_REQ_MGR_MAX_TRIGGERS   2
 
+ /**
+ * enum crm_req_eof_trigger_type
+ * @codes: to identify which type of eof trigger for next slot
+ */
+enum crm_req_eof_trigger_type {
+	CAM_REQ_EOF_TRIGGER_NONE,
+	CAM_REQ_EOF_TRIGGER_NOT_APPLY,
+	CAM_REQ_EOF_TRIGGER_APPLIED,
+};
+
 /**
  * enum crm_workq_task_type
  * @codes: to identify which type of task is present
@@ -105,6 +115,7 @@ enum crm_req_state {
  * NO_REQ     : empty slot
  * REQ_ADDED  : new entry in slot
  * REQ_PENDING    : waiting for next trigger to apply
+ * REQ_READY      : req is ready
  * REQ_APPLIED    : req is sent to all devices
  * INVALID    : invalid state
  */
@@ -112,6 +123,7 @@ enum crm_slot_status {
 	CRM_SLOT_STATUS_NO_REQ,
 	CRM_SLOT_STATUS_REQ_ADDED,
 	CRM_SLOT_STATUS_REQ_PENDING,
+	CRM_SLOT_STATUS_REQ_READY,
 	CRM_SLOT_STATUS_REQ_APPLIED,
 	CRM_SLOT_STATUS_INVALID,
 };
@@ -342,9 +354,6 @@ struct cam_req_mgr_connected_device {
  * @parent               : pvt data - link's parent is session
  * @lock                 : mutex lock to guard link data operations
  * @link_state_spin_lock : spin lock to protect link state variable
- * @subscribe_event      : irqs that link subscribes, IFE should send
- *                         notification to CRM at those hw events.
- * @trigger_mask         : mask on which irq the req is already applied
  * @sync_link            : array of pointer to the sync link for synchronization
  * @num_sync_links       : num of links sync associated with this link
  * @sync_link_sof_skip   : flag determines if a pkt is not available for a given
@@ -390,8 +399,6 @@ struct cam_req_mgr_core_link {
 	void                                *parent;
 	struct mutex                         lock;
 	spinlock_t                           link_state_spin_lock;
-	uint32_t                             subscribe_event;
-	uint32_t                             trigger_mask;
 	struct cam_req_mgr_core_link
 			*sync_link[MAXIMUM_LINKS_PER_SESSION - 1];
 	int32_t                              num_sync_links;

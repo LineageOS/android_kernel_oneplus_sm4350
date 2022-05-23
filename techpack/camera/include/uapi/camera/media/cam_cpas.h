@@ -6,7 +6,12 @@
 #ifndef __UAPI_CAM_CPAS_H__
 #define __UAPI_CAM_CPAS_H__
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*lixin@Camera.Drv, 2020/7/27, modify for fix camx/src/core can't include kernel head file*/
+#include <media/cam_defs.h>
+#else
 #include <camera/media/cam_defs.h>
+#endif
 
 #define CAM_FAMILY_CAMERA_SS     1
 #define CAM_FAMILY_CPAS_SS       2

@@ -6,8 +6,14 @@
 #ifndef __UAPI_OPE_H__
 #define __UAPI_OPE_H__
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*lixin@Camera.Drv, 2020/7/27, modify for fix camx/src/core can't include kernel head file*/
+#include <media/cam_defs.h>
+#include <media/cam_cpas.h>
+#else
 #include <camera/media/cam_defs.h>
 #include <camera/media/cam_cpas.h>
+#endif
 
 #define OPE_DEV_NAME_SIZE                  128
 

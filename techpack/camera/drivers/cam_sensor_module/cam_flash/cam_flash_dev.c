@@ -10,6 +10,11 @@
 #include "cam_common_util.h"
 #include "camera_main.h"
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*Feiping.Li@CAMERA.DRV, 20201012, add for AT flashlight test*/
+#include "oplus_cam_flash_dev.h"
+#endif /*OPLUS_FEATURE_CAMERA_COMMON*/
+
 static int32_t cam_flash_driver_cmd(struct cam_flash_ctrl *fctrl,
 		void *arg, struct cam_flash_private_soc *soc_private)
 {
@@ -492,6 +497,12 @@ static int cam_flash_component_bind(struct device *dev,
 
 	fctrl->flash_state = CAM_FLASH_STATE_INIT;
 	CAM_DBG(CAM_FLASH, "Component bound successfully");
+
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*Feiping.Li@CAMERA.DRV, 20201012, add for AT flashlight test*/
+	oplus_cam_flash_proc_init(fctrl, pdev);
+#endif
+
 	return rc;
 
 free_cci_resource:

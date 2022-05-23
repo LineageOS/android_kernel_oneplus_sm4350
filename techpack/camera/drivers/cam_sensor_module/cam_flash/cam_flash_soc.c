@@ -8,6 +8,10 @@
 #include "cam_flash_soc.h"
 #include "cam_res_mgr_api.h"
 
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
+#define OPLUS_FEATURE_CAMERA_COMMON
+#endif
+
 void cam_flash_put_source_node_data(struct cam_flash_ctrl *fctrl)
 {
 	uint32_t count = 0, i = 0;
@@ -292,6 +296,22 @@ int cam_flash_get_dt_data(struct cam_flash_ctrl *fctrl,
 		CAM_ERR(CAM_FLASH, "Get_dt_properties failed rc %d", rc);
 		goto free_soc_private;
 	}
+
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*Add by Zhengrong.Zhang@Camera 20160630 for flash*/
+	rc = of_property_read_string(of_node, "qcom,flash-name",
+		&fctrl->flash_name);
+	if (rc < 0) {
+		pr_err("get flash_name failed rc %d\n", rc);
+	}
+/*Add by Fangyan@Camera 2020/08/18 for flash current*/
+	fctrl->flash_current = 0;
+	rc = of_property_read_u32(of_node, "qcom,flash-current",
+		&fctrl->flash_current);
+	if (rc < 0) {
+		pr_err("get flash_current failed rc %d\n", rc);
+	}
+#endif
 
 	rc = cam_get_source_node_info(of_node, fctrl, soc_info->soc_private);
 	if (rc) {

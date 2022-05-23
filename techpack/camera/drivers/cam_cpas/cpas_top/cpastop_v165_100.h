@@ -602,4 +602,3 @@ static struct cam_camnoc_info cam165_cpas100_camnoc_info = {
 };
 
 #endif /* _CPASTOP_V165_100_H_ */
-

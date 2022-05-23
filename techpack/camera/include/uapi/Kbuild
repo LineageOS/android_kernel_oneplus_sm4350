@@ -20,3 +20,8 @@ header-y += camera/media/cam_ope.h
 header-y += camera/media/cam_isp_tfe.h
 header-y += camera/media/cam_tfe.h
 header-y += camera/media/cam_isp_sfe.h
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+#lixin@Camera.Drv, 2020/05/25, modify for camera kernel decoupling
+header-y += camera/oplus/media/oplus_cam_defs.h
+header-y += camera/oplus/media/oplus_cam_sensor.h
+#endif

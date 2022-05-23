@@ -9,6 +9,16 @@
 #include "cam_sensor_core.h"
 #include "camera_main.h"
 
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
+#define OPLUS_FEATURE_CAMERA_COMMON
+#endif
+
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*Tao.Wen@CAMERA.DRV, 20200928, add for AT transplant*/
+#include "oplus_cam_sensor_dev.h"
+static unsigned int is_ftm_current_test = 0;
+#endif /*OPLUS_FEATURE_CAMERA_COMMON*/
+
 static long cam_sensor_subdev_ioctl(struct v4l2_subdev *sd,
 	unsigned int cmd, void *arg)
 {
@@ -23,6 +33,14 @@ static long cam_sensor_subdev_ioctl(struct v4l2_subdev *sd,
 			CAM_ERR(CAM_SENSOR,
 				"Failed in Driver cmd: %d", rc);
 		break;
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*Feiping.Li@Camera.drv, 20201010, add for AT test*/
+	case VIDIOC_CAM_FTM_POWNER_DOWN:
+	case VIDIOC_CAM_FTM_POWNER_UP:{
+		rc = oplus_cam_sensor_subdev_ioctl(sd, cmd, arg, &is_ftm_current_test);
+		break;
+	}
+#endif /*OPLUS_FEATURE_CAMERA_COMMON*/
 	default:
 		CAM_ERR(CAM_SENSOR, "Invalid ioctl cmd: %d", cmd);
 		rc = -ENOIOCTLCMD;
@@ -43,7 +61,16 @@ static int cam_sensor_subdev_close(struct v4l2_subdev *sd,
 	}
 
 	mutex_lock(&(s_ctrl->cam_sensor_mutex));
+
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/*add by hongbo.dai@camera, 20191026 for Camera AT bug*/
+	if (!is_ftm_current_test) {
+		cam_sensor_shutdown(s_ctrl);
+	}
+#else
 	cam_sensor_shutdown(s_ctrl);
+#endif /*OPLUS_FEATURE_CAMERA_COMMON*/
+
 	mutex_unlock(&(s_ctrl->cam_sensor_mutex));
 
 	return 0;

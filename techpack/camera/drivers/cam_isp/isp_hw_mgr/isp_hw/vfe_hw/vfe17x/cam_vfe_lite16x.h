@@ -349,4 +349,3 @@ static struct cam_vfe_hw_info cam_vfe_lite16x_hw_info = {
 };
 
 #endif /* _CAM_VFE_LITE16X_H_ */
-

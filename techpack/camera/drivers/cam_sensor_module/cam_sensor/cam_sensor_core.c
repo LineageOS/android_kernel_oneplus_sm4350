@@ -12,6 +12,14 @@
 #include "cam_common_util.h"
 #include "cam_packet_util.h"
 
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
+#define OPLUS_FEATURE_CAMERA_COMMON
+#endif
+
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*Feiping.Li@Camera.drv, 20201010, add for kernel sensor decoupling*/
+#include "oplus_cam_sensor_core.h"
+#endif /*OPLUS_FEATURE_CAMERA_COMMON*/
 
 static int cam_sensor_update_req_mgr(
 	struct cam_sensor_ctrl_t *s_ctrl,
@@ -686,11 +694,20 @@ int cam_sensor_match_id(struct cam_sensor_ctrl_t *s_ctrl)
 		return -EINVAL;
 	}
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*Tao.Wen@CAMERA.DRV, 20200925, modify for sensor probe id*/
+	rc = camera_io_dev_read(
+			&(s_ctrl->io_master_info),
+			slave_info->sensor_id_reg_addr,
+			&chipid, s_ctrl->sensor_probe_addr_type,
+			s_ctrl->sensor_probe_data_type);
+#else
 	rc = camera_io_dev_read(
 		&(s_ctrl->io_master_info),
 		slave_info->sensor_id_reg_addr,
 		&chipid, CAMERA_SENSOR_I2C_TYPE_WORD,
 		CAMERA_SENSOR_I2C_TYPE_WORD);
+#endif /*OPLUS_FEATURE_CAMERA_COMMON*/
 
 	CAM_DBG(CAM_SENSOR, "read id: 0x%x expected id 0x%x:",
 		chipid, slave_info->sensor_id);
@@ -700,6 +717,15 @@ int cam_sensor_match_id(struct cam_sensor_ctrl_t *s_ctrl)
 				chipid, slave_info->sensor_id);
 		return -ENODEV;
 	}
+
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/*add by hongbo.dai@camera 20190221, get DPC Data for IMX471*/
+	if (slave_info->sensor_id == 0x0471) {
+		oplus_sensor_imx471_get_dpc_data(s_ctrl);
+	}
+#endif
+
+
 	return rc;
 }
 
@@ -1086,6 +1112,20 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 		}
 	}
 		break;
+
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*Feiping.Li@CAMERA.DRV, 20201010, add for oem sensor operation*/
+	case CAM_OEM_IO_CMD:
+	case CAM_OEM_GET_ID:
+	case CAM_GET_DPC_DATA: {
+		rc = oplus_cam_sensor_driver_cmd(s_ctrl, arg);
+		if (rc < 0) {
+			CAM_ERR(CAM_SENSOR, "oplus cmd failed");
+			goto release_mutex;
+		}
+		break;
+	}
+#endif
 	default:
 		CAM_ERR(CAM_SENSOR, "Invalid Opcode: %d", cmd->op_code);
 		rc = -EINVAL;

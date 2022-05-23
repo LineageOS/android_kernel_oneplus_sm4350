@@ -19,6 +19,10 @@
 #define CAM_IFE_QTIMER_MUL_FACTOR        10000
 #define CAM_IFE_QTIMER_DIV_FACTOR        192
 
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
+#define OPLUS_FEATURE_CAMERA_COMMON
+#endif
+
 /*
  * Maximum hw resource - This number is based on the maximum
  * output port resource. The current maximum resource number
@@ -28,6 +32,14 @@
 
 /* max requests per ctx for isp */
 #define CAM_ISP_CTX_REQ_MAX                     8
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
+/*Caohua.Lin@Cam.Drv, fix cam_tfe_mgr_config_hw out of bounds, 20201214*/
+/*
+ * Maximum configuration entry size  - This is based on the
+ * worst case DUAL IFE use case plus some margin.
+ */
+#define CAM_ISP_CTX_CFG_MAX                     25
+#endif /*OPLUS_FEATURE_CAMERA_COMMON*/
 
 /*
  * Maximum entries in state monitoring array for error logging

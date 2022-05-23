@@ -10,7 +10,12 @@
 #include <linux/types.h>
 #include <linux/ioctl.h>
 #include <linux/media.h>
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*lixin@Camera.Drv, 2020/7/27, modify for fix camx/src/core can't include kernel head file*/
+#include <media/cam_defs.h>
+#else
 #include <camera/media/cam_defs.h>
+#endif
 
 #define CAM_REQ_MGR_VNODE_NAME "cam-req-mgr-devnode"
 

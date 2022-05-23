@@ -46,6 +46,10 @@
 #define CAM_FLASH_PACKET_OPCODE_SET_OPS              1
 #define CAM_FLASH_PACKET_OPCODE_NON_REALTIME_SET_OPS 2
 
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
+#define OPLUS_FEATURE_CAMERA_COMMON
+#endif
+
 struct cam_flash_ctrl;
 
 enum cam_flash_switch_trigger_ops {
@@ -214,6 +218,12 @@ struct cam_flash_ctrl {
 	struct camera_io_master             io_master_info;
 	struct i2c_data_settings            i2c_data;
 	uint32_t                            last_flush_req;
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*Add by Zhengrong.Zhang@Camera 20160809 for flash*/
+	const char *                        flash_name;
+/*Add by Fangyan @ Camera 2020/08/17 for flash current*/
+	uint32_t                            flash_current;
+#endif
 };
 
 int cam_flash_pmic_pkt_parser(struct cam_flash_ctrl *fctrl, void *arg);
