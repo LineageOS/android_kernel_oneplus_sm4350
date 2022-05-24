@@ -9,7 +9,7 @@
 #include <linux/of_gpio.h>
 #include <linux/pwm.h>
 #include <video/mipi_display.h>
-#include <../../../oneplus/include/linux/oem/boot_mode.h>
+#include <soc/oplus/boot_mode.h>
 
 #include "dsi_panel.h"
 #include "dsi_ctrl_hw.h"
@@ -38,7 +38,6 @@
 //#include <linux/oem/project_info.h>
 #include "oneplus_dsi_support.h"
 
-#include <../../../oneplus/power/oplus_chg/oplus_op_def.h>
 #if IS_BUILTIN(CONFIG_TOUCHPANEL_OPLUS)
 extern int (*tp_gesture_enable_notifier)(unsigned int tp_index);
 #endif
