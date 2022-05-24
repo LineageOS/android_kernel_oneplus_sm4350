@@ -1943,7 +1943,7 @@ static unsigned int get_chip_type(const char *name)
 	return CHIP_TYPE_UNKNOWN;
 }
 #ifdef CONFIG_SND_SOC_AW87XXX
-int soc_check_sia81xx_status()
+int soc_check_sia81xx_status(void)
 {
 	int ret = 0;
 	sia81xx_dev_t *sia81xx = g_sia81xx;
