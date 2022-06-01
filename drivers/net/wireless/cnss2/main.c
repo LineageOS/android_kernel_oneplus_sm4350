@@ -2970,15 +2970,11 @@ static int cnss_probe(struct platform_device *plat_dev)
 	if (ret < 0)
 		cnss_pr_err("CNSS genl init failed %d\n", ret);
 	device_create_file(&plat_priv->plat_dev->dev,
-<<<<<<< HEAD
-			   &dev_attr_wifichain_flag);
-=======
 			   &dev_attr_cnss_version_information);
 	device_create_file(&plat_priv->plat_dev->dev,
 			   &dev_attr_wifichain_flag);
 	device_create_file(&plat_priv->plat_dev->dev,
 			   &dev_attr_bdf_name);
->>>>>>> Vendor_916_Upgrade_Base_914
 	cnss_pr_info("Platform driver probed successfully.\n");
 
 	return 0;
@@ -3032,15 +3028,11 @@ static int cnss_remove(struct platform_device *plat_dev)
 	platform_set_drvdata(plat_dev, NULL);
 	plat_env = NULL;
 	device_remove_file(&plat_priv->plat_dev->dev,
-<<<<<<< HEAD
-			   &dev_attr_wifichain_flag);
-=======
 			   &dev_attr_cnss_version_information);
 	device_remove_file(&plat_priv->plat_dev->dev,
 			   &dev_attr_wifichain_flag);
 	device_remove_file(&plat_priv->plat_dev->dev,
 			   &dev_attr_bdf_name);
->>>>>>> Vendor_916_Upgrade_Base_914
 
 	return 0;
 }
