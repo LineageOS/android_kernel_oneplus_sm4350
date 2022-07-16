@@ -787,6 +787,10 @@ int icnss_wlfw_wlan_mac_req_send_sync(struct icnss_priv *priv,
 	struct wlfw_mac_addr_resp_msg_v01 resp = {0};
 	struct qmi_txn txn;
 	int ret;
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_WIFI_MAC)
+	int i;
+	char revert_mac[QMI_WLFW_MAC_ADDR_SIZE_V01];
+#endif
 
 	if (!priv || !mac || mac_len != QMI_WLFW_MAC_ADDR_SIZE_V01)
 		return -EINVAL;
@@ -802,7 +806,16 @@ int icnss_wlfw_wlan_mac_req_send_sync(struct icnss_priv *priv,
 
 	icnss_pr_dbg("Sending WLAN mac req [%pM], state: 0x%lx\n",
 			     mac, priv->state);
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_WIFI_MAC)
+	for (i = 0; i < QMI_WLFW_MAC_ADDR_SIZE_V01; i++) {
+		revert_mac[i] = mac[QMI_WLFW_MAC_ADDR_SIZE_V01 - i - 1];
+	}
+	icnss_pr_dbg("Sending revert WLAN MAC request [%pM], state: 0x%lx\n",
+		    revert_mac, priv->driver_state);
+	memcpy(req.mac_addr, revert_mac, mac_len);
+#else
 	memcpy(req.mac_addr, mac, mac_len);
+#endif
 	req.mac_addr_valid = 1;
 
 	ret = qmi_send_request(&priv->qmi, NULL, &txn,
