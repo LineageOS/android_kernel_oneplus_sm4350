@@ -28,6 +28,13 @@ config ICNSS2_QMI
 	  and configurations. It also send WLAN on/off control message to FW
 	  over QMI channel.
 
+config OPLUS_FEATURE_WIFI_MAC
+	bool "Reverse firmware provided MAC address"
+	depends on ICNSS2
+	help
+	  This enables the changes from WLAN host driver that load MAC address
+	  from QMI DMS.
+
 config CNSS_QCA6750
 	bool "Enable ICNSS QCA6750 chipset specific changes"
 	depends on ICNSS2
