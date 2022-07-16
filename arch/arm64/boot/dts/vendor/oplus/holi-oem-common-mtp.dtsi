@@ -317,6 +317,10 @@
 	cd-gpios = <&tlmm 94 GPIO_ACTIVE_HIGH>;
 };
 
+&icnss {
+	use-nv-mac;
+};
+
 /* add oplus audio overlay */
 #include "audio/oplus-holi-audio-overlay.dtsi"
 /* add oplus NFC dtsi */
