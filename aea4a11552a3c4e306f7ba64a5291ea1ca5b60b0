@@ -34,6 +34,24 @@
       "parentUuid": "84592c73_191e5e4c",
       "revId": "aea4a11552a3c4e306f7ba64a5291ea1ca5b60b0",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "dd41776f_a6f3d8ae",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 18745
+      },
+      "writtenOn": "2022-07-18T01:48:18Z",
+      "side": 1,
+      "message": "The N200 does not have a QCA6490 either, and I\u0027m only considering what ICNSS2 supports.",
+      "parentUuid": "635426ae_09de220c",
+      "revId": "aea4a11552a3c4e306f7ba64a5291ea1ca5b60b0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
