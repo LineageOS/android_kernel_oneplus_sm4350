@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "84592c73_191e5e4c",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 18745
+      },
+      "writtenOn": "2022-07-18T00:29:30Z",
+      "side": 1,
+      "message": "QMI DMS seems to only be accessible on WCN6750, which the N200 does not have.",
+      "revId": "aea4a11552a3c4e306f7ba64a5291ea1ca5b60b0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
