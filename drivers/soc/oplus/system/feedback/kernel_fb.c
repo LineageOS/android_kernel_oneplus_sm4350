@@ -13,11 +13,7 @@
 #include <linux/sysfs.h>
 #ifdef CONFIG_OPLUS_KEVENT_UPLOAD
 #include <linux/version.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
-#include <../../../arch/arm64/kernel/secureguard/rootguard/oplus_kevent.h>
-#else
 #include <linux/oplus_kevent.h>
-#endif
 #endif
 #include <soc/oplus/system/kernel_fb.h>
 #include <linux/delay.h>
