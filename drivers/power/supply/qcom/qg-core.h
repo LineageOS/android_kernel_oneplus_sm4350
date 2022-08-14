@@ -215,6 +215,10 @@ struct qpnp_qg {
 	struct cycle_counter	*counter;
 	/* ttf */
 	struct ttf		*ttf;
+#ifdef OPLUS_FEATURE_CHG_BASIC
+	int			oplus_batt_type;
+	int			typical_capacity_mah;
+#endif
 };
 
 struct ocv_all {

@@ -201,6 +201,9 @@ static const struct smb5_iio_prop_channels smb5_chans_pmic[] = {
 	SMB5_CHAN_ACTIVITY("battery_force_recharge", FORCE_RECHARGE)
 	SMB5_CHAN_ACTIVITY("battery_fcc_stepper_enable", FCC_STEPPER_ENABLE)
 	SMB5_CHAN_INDEX("usb_typec_accessory_mode", TYPEC_ACCESSORY_MODE)
+#ifdef OPLUS_FEATURE_CHG_BASIC
+	SMB5_CHAN_INDEX("usb_pd_sdp", PD_SDP)
+#endif
 };
 
 struct iio_channel **get_ext_channels(struct device *dev,

@@ -266,6 +266,11 @@ int smb5_iio_get_prop(struct smb_charger *chg, int channel, int *val)
 	case PSY_IIO_TYPEC_ACCESSORY_MODE:
 		rc = smblib_get_usb_prop_typec_accessory_mode(chg, val);
 		break;
+#ifdef OPLUS_FEATURE_CHG_BASIC
+	case PSY_IIO_PD_SDP:
+		*val = chg->pd_sdp;
+		break;
+#endif
 	default:
 		pr_err("get prop %d is not supported\n", channel);
 		rc = -EINVAL;
@@ -307,8 +312,13 @@ int smb5_iio_set_prop(struct smb_charger *chg, int channel, int val)
 		chg->system_suspend_supported = val;
 		break;
 	case PSY_IIO_CTM_CURRENT_MAX:
+#ifndef OPLUS_FEATURE_CHG_BASIC
 		rc = vote(chg->usb_icl_votable, CTM_VOTER,
 						val >= 0, val);
+#else
+		rc = vote(chg->usb_icl_votable, CTM_VOTER,
+						false, val);
+#endif
 		break;
 	case PSY_IIO_PR_SWAP:
 		rc = smblib_set_prop_pr_swap_in_progress(chg, val);
@@ -490,6 +500,12 @@ int smb5_iio_set_prop(struct smb_charger *chg, int channel, int val)
 	case PSY_IIO_FCC_STEPPER_ENABLE:
 		chg->fcc_stepper_enable = val;
 		break;
+#ifdef OPLUS_FEATURE_CHG_BASIC
+	case PSY_IIO_PD_SDP:
+		pr_err("PSY_IIO_PD_SDP: %d \n", val);
+		chg->pd_sdp = val;
+		break;
+#endif
 	default:
 		pr_err("get prop %d is not supported\n", channel);
 		rc = -EINVAL;
