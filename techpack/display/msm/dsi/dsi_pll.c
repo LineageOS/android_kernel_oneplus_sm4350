@@ -165,6 +165,11 @@ int dsi_pll_init(struct platform_device *pdev, struct dsi_pll_resource **pll)
 	pll_res->ssc_en = of_property_read_bool(pdev->dev.of_node,
 						"qcom,dsi-pll-ssc-en");
 
+#ifdef OPLUS_BUG_STABILITY
+	pll_res->ssc_en = 0;
+	pr_info("%s default set pll_res->ssc_en = %d\n", __func__, pll_res->ssc_en);
+#endif /*OPLUS_BUG_STABILITY*/
+
 	if (pll_res->ssc_en) {
 		DSI_PLL_INFO(pll_res, "PLL SSC enabled\n");
 
