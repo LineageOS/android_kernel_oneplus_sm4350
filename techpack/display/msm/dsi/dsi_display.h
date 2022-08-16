@@ -20,6 +20,9 @@
 #include "dsi_ctrl.h"
 #include "dsi_phy.h"
 #include "dsi_panel.h"
+#ifdef OPLUS_BUG_STABILITY
+#include "oplus_dsi_support.h"
+#endif /*OPLUS_BUG_STABILITY*/
 
 #define MAX_DSI_CTRLS_PER_DISPLAY             2
 #define DSI_CLIENT_NAME_SIZE		20
@@ -771,6 +774,15 @@ enum dsi_pixel_format dsi_display_get_dst_format(
  * Return: Zero on Success
  */
 int dsi_display_cont_splash_config(void *display);
+
+#ifdef OPLUS_BUG_STABILITY
+struct dsi_display *get_main_display(void);
+
+/* Add for implement panel register read */
+int dsi_host_alloc_cmd_tx_buffer(struct dsi_display *display);
+int dsi_display_cmd_engine_enable(struct dsi_display *display);
+int dsi_display_cmd_engine_disable(struct dsi_display *display);
+#endif
 
 /**
  * dsi_display_cont_splash_res_disable() - Disable resource votes added in probe

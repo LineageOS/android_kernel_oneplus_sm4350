@@ -10,6 +10,9 @@
 #include <linux/of_gpio.h>
 #include <linux/pwm.h>
 #include <video/mipi_display.h>
+#ifdef OPLUS_FEATURE_TP_BASIC
+#include <linux/msm_drm_notify.h>
+#endif /* OPLUS_FEATURE_TP_BASIC */
 
 #include "dsi_panel.h"
 #include "dsi_ctrl_hw.h"
@@ -17,6 +20,14 @@
 #include "sde_dbg.h"
 #include "sde_dsc_helper.h"
 #include "sde_vdc_helper.h"
+
+#ifdef OPLUS_BUG_STABILITY
+#include <soc/oplus/boot_mode.h>
+#include "oplus_display_private_api.h"
+#include "oplus_dc_diming.h"
+#include "oplus_onscreenfingerprint.h"
+#include "oplus_aod.h"
+#endif
 
 /**
  * topology is currently defined by a set of following 3 values:
@@ -36,6 +47,16 @@
 #define DEFAULT_PANEL_PREFILL_LINES	25
 #define HIGH_REFRESH_RATE_THRESHOLD_TIME_US	500
 #define MIN_PREFILL_LINES      40
+
+#ifdef OPLUS_FEATURE_TP_BASIC
+extern int msm_drm_notifier_call_chain(unsigned long val, void *v);
+extern int (*tp_gesture_enable_notifier)(unsigned int tp_index);
+extern void (*tp_ftm_extra_notifier)(unsigned int tp_index);
+extern int (*tp_reset_gpio_notifier)(bool enable, unsigned int tp_index);
+extern int shutdown_flag;
+bool is_pd_with_guesture = false;
+static int first_bl_on = 1;
+#endif /* OPLUS_FEATURE_TP_BASIC */
 
 static void dsi_dce_prepare_pps_header(char *buf, u32 pps_delay_ms)
 {
@@ -155,6 +176,25 @@ static int dsi_panel_gpio_request(struct dsi_panel *panel)
 		}
 	}
 
+#ifdef OPLUS_BUG_STABILITY
+	if (gpio_is_valid(r_config->panel_vout_gpio)) {
+		rc = gpio_request(r_config->panel_vout_gpio, "panel_vout_gpio");
+		if (rc) {
+			DSI_ERR("request for panel_vout_gpio failed, rc=%d\n", rc);
+			if (gpio_is_valid(r_config->panel_vout_gpio))
+				gpio_free(r_config->panel_vout_gpio);
+		}
+	}
+	if (gpio_is_valid(r_config->panel_vddr_aod_en_gpio)) {
+		rc = gpio_request(r_config->panel_vddr_aod_en_gpio, "panel_vddr_aod_en_gpio");
+		if (rc) {
+			DSI_ERR("request for panel_vddr_aod_en_gpio failed, rc=%d\n", rc);
+			if (gpio_is_valid(r_config->panel_vddr_aod_en_gpio))
+				gpio_free(r_config->panel_vddr_aod_en_gpio);
+		}
+	}
+#endif
+
 	goto error;
 error_release_mode_sel:
 	if (gpio_is_valid(panel->bl_config.en_gpio))
@@ -189,6 +229,12 @@ static int dsi_panel_gpio_release(struct dsi_panel *panel)
 	if (gpio_is_valid(panel->panel_test_gpio))
 		gpio_free(panel->panel_test_gpio);
 
+#ifdef OPLUS_BUG_STABILITY
+	if (gpio_is_valid(r_config->panel_vout_gpio))
+		gpio_free(r_config->panel_vout_gpio);
+	if (gpio_is_valid(r_config->panel_vddr_aod_en_gpio))
+		gpio_free(r_config->panel_vddr_aod_en_gpio);
+#endif
 	return rc;
 }
 
@@ -337,8 +383,22 @@ static int dsi_panel_set_pinctrl_state(struct dsi_panel *panel, bool enable)
 static int dsi_panel_power_on(struct dsi_panel *panel)
 {
 	int rc = 0;
+#ifdef OPLUS_FEATURE_TP_BASIC
+	int mode = 0;
+	int blank;
+	struct msm_drm_notifier notifier_data;
+#endif /* OPLUS_FEATURE_TP_BASIC */
 
-	rc = dsi_pwr_enable_regulator(&panel->power_info, true);
+#ifdef OPLUS_BUG_STABILITY
+    pr_err("debug for dsi_panel_power_on\n");
+#endif
+
+#ifdef OPLUS_BUG_STABILITY
+	if (strcmp(panel->name,"nt36672c tm fhd plus video mode dsi panel")
+		&& strcmp(panel->name,"nt36672c dsjm fhd plus video mode dsi panel")
+		&& strcmp(panel->name,"ili7807s tm fhd plus video mode dsi panel"))
+#endif /*OPLUS_BUG_STABILITY*/
+		rc = dsi_pwr_enable_regulator(&panel->power_info, true);
 	if (rc) {
 		DSI_ERR("[%s] failed to enable vregs, rc=%d\n",
 				panel->name, rc);
@@ -351,11 +411,43 @@ static int dsi_panel_power_on(struct dsi_panel *panel)
 		goto error_disable_vregs;
 	}
 
+#ifdef OPLUS_BUG_STABILITY
+	if (gpio_is_valid(panel->reset_config.panel_vout_gpio)) {
+		rc = gpio_direction_output(panel->reset_config.panel_vout_gpio, 1);
+		if (rc)
+			DSI_ERR("unable to set dir for panel_vout_gpio rc=%d", rc);
+		gpio_set_value(panel->reset_config.panel_vout_gpio, 1);
+	}
+	if (gpio_is_valid(panel->reset_config.panel_vddr_aod_en_gpio)) {
+		rc = gpio_direction_output(panel->reset_config.panel_vddr_aod_en_gpio, 1);
+		if (rc)
+			DSI_ERR("unable to set dir for panel_vddr_aod_en_gpio rc=%d", rc);
+		gpio_set_value(panel->reset_config.panel_vddr_aod_en_gpio, 1);
+	}
+#endif
+
 	rc = dsi_panel_reset(panel);
+#ifdef OPLUS_FEATURE_TP_BASIC
+		blank = 0x19;
+		notifier_data.data = &blank;
+		notifier_data.id = 0;
+		msm_drm_notifier_call_chain(MSM_DRM_EVENT_FOR_TOUCH, &notifier_data);
+#endif /* OPLUS_FEATURE_TP_BASIC */
 	if (rc) {
 		DSI_ERR("[%s] failed to reset panel, rc=%d\n", panel->name, rc);
 		goto error_disable_gpio;
 	}
+
+#ifdef OPLUS_FEATURE_TP_BASIC
+	mode = get_boot_mode();
+	pr_err("[TP] in dsi_panel_power_on, mode=%d\n",mode);
+	if((mode != MSM_BOOT_MODE__FACTORY) && (mode != MSM_BOOT_MODE__RF) && (mode != MSM_BOOT_MODE__WLAN)) {
+		blank = 0x10;
+		notifier_data.data = &blank;
+		notifier_data.id = 0;
+		msm_drm_notifier_call_chain(MSM_DRM_EVENT_FOR_TOUCH, &notifier_data);
+	}
+#endif /* OPLUS_FEATURE_TP_BASIC */
 
 	goto exit;
 
@@ -383,6 +475,43 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 		DSI_DEBUG("TWM Enabled, skip panel power off\n");
 		return rc;
 	}
+#ifdef OPLUS_FEATURE_TP_BASIC
+	int mode = 0;
+	int blank;
+	struct msm_drm_notifier notifier_data;
+#endif /* OPLUS_FEATURE_TP_BASIC */
+
+#ifdef OPLUS_BUG_STABILITY
+	pr_err("debug for dsi_panel_power_off\n");
+#endif
+
+#ifdef OPLUS_BUG_STABILITY
+	if (!strcmp(panel->oplus_priv.vendor_name,"NT36672C-90HZ")
+		|| !strcmp(panel->oplus_priv.vendor_name,"ILI7807S-90HZ")) {
+			first_bl_on = 1;
+	}
+#endif /*OPLUS_BUG_STABILITY*/
+
+#ifdef OPLUS_FEATURE_TP_BASIC
+	mode = get_boot_mode();
+	pr_err("[TP] in dsi_panel_power_off, mode=%d\n",mode);
+	if((mode != MSM_BOOT_MODE__FACTORY) && (mode != MSM_BOOT_MODE__RF) && (mode != MSM_BOOT_MODE__WLAN)) {
+		if(tp_gesture_enable_notifier && tp_gesture_enable_notifier(0)) {
+			is_pd_with_guesture = true;
+			pr_err("[TP] shutdown_flag status is %d\n", shutdown_flag);
+			if (shutdown_flag == 0) {
+				pr_err("[TP] tp gesture is enable, Display not to power off\n");
+				return rc;
+			}
+		}
+		is_pd_with_guesture = false;
+		blank = 0x1A;
+		notifier_data.data = &blank;
+		notifier_data.id = 0;
+		msm_drm_notifier_call_chain(MSM_DRM_EVENT_FOR_TOUCH, &notifier_data);
+	}
+	pr_err("[TP] tp gesture is disenable, Display goto power off\n");
+#endif /* OPLUS_FEATURE_TP_BASIC */
 	if (gpio_is_valid(panel->reset_config.disp_en_gpio))
 		gpio_set_value(panel->reset_config.disp_en_gpio, 0);
 
@@ -390,8 +519,24 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 					!panel->reset_gpio_always_on)
 		gpio_set_value(panel->reset_config.reset_gpio, 0);
 
+#ifdef OPLUS_FEATURE_TP_BASIC
+	if((mode == MSM_BOOT_MODE__FACTORY) || (mode == MSM_BOOT_MODE__RF) || (mode == MSM_BOOT_MODE__WLAN)) {
+		if(!strcmp(panel->name,"ili7807s tm fhd plus video mode dsi panel") && tp_reset_gpio_notifier) {
+			tp_reset_gpio_notifier(0, 0);
+			pr_err("[TP] ilitek tp ftm mode set TP RST low\n");
+		}
+	}
+#endif /* OPLUS_FEATURE_TP_BASIC */
+
 	if (gpio_is_valid(panel->reset_config.lcd_mode_sel_gpio))
 		gpio_set_value(panel->reset_config.lcd_mode_sel_gpio, 0);
+
+#ifdef OPLUS_BUG_STABILITY
+	if (gpio_is_valid(panel->reset_config.panel_vout_gpio))
+		gpio_set_value(panel->reset_config.panel_vout_gpio, 0);
+	if (gpio_is_valid(panel->reset_config.panel_vddr_aod_en_gpio))
+		gpio_set_value(panel->reset_config.panel_vddr_aod_en_gpio, 0);
+#endif
 
 	if (gpio_is_valid(panel->panel_test_gpio)) {
 		rc = gpio_direction_input(panel->panel_test_gpio);
@@ -413,8 +558,25 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 
 	return rc;
 }
+
+#ifdef OPLUS_BUG_STABILITY
+extern int oplus_seed_backlight;
+extern u32 oplus_last_backlight;
+extern u32 oplus_backlight_delta;
+extern ktime_t oplus_backlight_time;
+extern int oplus_dimlayer_bl_enabled;
+extern int oplus_dimlayer_bl_enable_real;
+extern int oplus_dimlayer_bl_alpha;
+#endif
+
+#ifndef OPLUS_BUG_STABILITY
 static int dsi_panel_tx_cmd_set(struct dsi_panel *panel,
 				enum dsi_cmd_set_type type)
+#else  /*OPLUS_BUG_STABILITY*/
+const char *cmd_set_prop_map[];
+int dsi_panel_tx_cmd_set(struct dsi_panel *panel,
+				enum dsi_cmd_set_type type)
+#endif /*OPLUS_BUG_STABILITY*/
 {
 	int rc = 0, i = 0;
 	ssize_t len;
@@ -423,6 +585,9 @@ static int dsi_panel_tx_cmd_set(struct dsi_panel *panel,
 	enum dsi_cmd_set_state state;
 	struct dsi_display_mode *mode;
 	const struct mipi_dsi_host_ops *ops = panel->host->ops;
+#if defined(OPLUS_BUG_STABILITY)
+	struct dsi_panel_cmd_set *oplus_cmd_set = NULL;
+#endif
 
 	if (!panel || !panel->cur_mode)
 		return -EINVAL;
@@ -433,6 +598,22 @@ static int dsi_panel_tx_cmd_set(struct dsi_panel *panel,
 	count = mode->priv_info->cmd_sets[type].count;
 	state = mode->priv_info->cmd_sets[type].state;
 	SDE_EVT32(type, state, count);
+
+#ifdef OPLUS_BUG_STABILITY
+	if (type != DSI_CMD_READ_SAMSUNG_PANEL_REGISTER_ON
+		&& type != DSI_CMD_READ_SAMSUNG_PANEL_REGISTER_OFF) {
+		pr_err("dsi_cmd %s\n", cmd_set_prop_map[type]);
+	}
+
+	if (oplus_seed_backlight) {
+		oplus_cmd_set = oplus_dsi_update_seed_backlight(panel, oplus_seed_backlight, type);
+		if (!IS_ERR_OR_NULL(oplus_cmd_set)) {
+			cmds = oplus_cmd_set->cmds;
+			count = oplus_cmd_set->count;
+			state = oplus_cmd_set->state;
+		}
+	}
+#endif /*OPLUS_BUG_STABILITY*/
 
 	if (count == 0) {
 		DSI_DEBUG("[%s] No commands to be sent for state(%d)\n",
@@ -464,6 +645,10 @@ static int dsi_panel_tx_cmd_set(struct dsi_panel *panel,
 error:
 	return rc;
 }
+
+#ifdef OPLUS_BUG_STABILITY
+EXPORT_SYMBOL(dsi_panel_tx_cmd_set);
+#endif
 
 static int dsi_panel_pinctrl_deinit(struct dsi_panel *panel)
 {
@@ -558,9 +743,82 @@ static int dsi_panel_update_backlight(struct dsi_panel *panel,
 	if (panel->bl_config.bl_inverted_dbv)
 		bl_lvl = (((bl_lvl & 0xff) << 8) | (bl_lvl >> 8));
 
+#ifdef OPLUS_BUG_STABILITY
+	if ((get_oplus_display_scene() == OPLUS_DISPLAY_AOD_SCENE) && ( bl_lvl == 1)) {
+		pr_err("dsi_cmd AOD mode return bl_lvl:%d\n",bl_lvl);
+		return 0;
+	}
+
+	if (panel->is_hbm_enabled)
+		return 0;
+
+	if (oplus_display_get_hbm_mode()) {
+		return rc;
+	}
+
+	if (bl_lvl > 1) {
+		if (bl_lvl > oplus_last_backlight)
+			oplus_backlight_delta = bl_lvl - oplus_last_backlight;
+		else
+			oplus_backlight_delta = oplus_last_backlight - bl_lvl;
+		oplus_backlight_time = ktime_get();
+	}
+	if (oplus_dimlayer_bl_enabled != oplus_dimlayer_bl_enable_real) {
+		oplus_dimlayer_bl_enable_real = oplus_dimlayer_bl_enabled;
+		if (oplus_dimlayer_bl_enable_real) {
+			pr_err("Enter DC backlight\n");
+		} else {
+			pr_err("Exit DC backlight\n");
+		}
+	}
+
+	bl_lvl = oplus_panel_process_dimming_v2(panel, bl_lvl, false);
+	bl_lvl = oplus_panel_process_dimming_v3(panel, bl_lvl);
+
+	if (oplus_dimlayer_bl_enable_real) {
+		/*
+		 * avoid effect power and aod mode
+		 */
+		if (bl_lvl > 1)
+			bl_lvl = oplus_dimlayer_bl_alpha;
+	}
+
+	{
+		const struct mipi_dsi_host_ops *ops = dsi->host->ops;
+		char payload[] = {MIPI_DCS_WRITE_CONTROL_DISPLAY, 0xE0};
+		struct mipi_dsi_msg msg;
+
+		if (bl_lvl > panel->bl_config.bl_normal_max_level)
+			payload[1] = 0xE0;
+		else
+			payload[1] = 0x20;
+
+		memset(&msg, 0, sizeof(msg));
+		msg.channel = dsi->channel;
+		msg.tx_buf = payload;
+		msg.tx_len = sizeof(payload);
+		msg.type = MIPI_DSI_DCS_SHORT_WRITE_PARAM;
+
+			rc = ops->transfer(dsi->host, &msg);
+
+		if (rc < 0)
+			pr_err("failed to backlight bl_lvl %d - ret=%d\n", bl_lvl, rc);
+	}
+
+	if (!strcmp(panel->oplus_priv.vendor_name,"NT37800")) {
+		if (bl_lvl < 400 && bl_lvl != 0) {
+			bl_lvl = 400;
+		}
+	}
+#endif /* OPLUS_BUG_STABILITY */
 	rc = mipi_dsi_dcs_set_display_brightness(dsi, bl_lvl);
 	if (rc < 0)
 		DSI_ERR("failed to update dcs backlight:%d\n", bl_lvl);
+
+#ifdef OPLUS_BUG_STABILITY
+	oplus_panel_process_dimming_v2_post(panel, false);
+	oplus_last_backlight = bl_lvl;
+#endif /* OPLUS_BUG_STABILITY */
 
 	if (unlikely(panel->bl_config.lp_mode))
 		dsi->mode_flags = mode_flags;
@@ -628,6 +886,19 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 		return 0;
 
 	DSI_DEBUG("backlight type:%d lvl:%d\n", bl->type, bl_lvl);
+
+#ifdef OPLUS_BUG_STABILITY
+	if(bl->type == DSI_BACKLIGHT_WLED) {
+		if (!strcmp(panel->oplus_priv.vendor_name,"NT36672C-90HZ")
+			|| !strcmp(panel->oplus_priv.vendor_name,"ILI7807S-90HZ")) {
+			if (bl_lvl > 0 && first_bl_on) {
+				usleep_range(18000, 18000);
+				first_bl_on = 0;
+			}
+		}
+	}
+#endif /*OPLUS_BUG_STABILITY*/
+
 	switch (bl->type) {
 	case DSI_BACKLIGHT_WLED:
 		rc = backlight_device_set_brightness(bl->raw_bd, bl_lvl);
@@ -644,9 +915,16 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 		DSI_ERR("Backlight type(%d) not supported\n", bl->type);
 		rc = -ENOTSUPP;
 	}
+#ifdef OPLUS_BUG_STABILITY
+	oplus_last_backlight = bl_lvl;
+#endif /* OPLUS_BUG_STABILITY */
 
 	return rc;
 }
+
+#ifdef OPLUS_BUG_STABILITY
+EXPORT_SYMBOL(dsi_panel_set_backlight);
+#endif
 
 static u32 dsi_panel_get_brightness(struct dsi_backlight_config *bl)
 {
@@ -1757,6 +2035,43 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-post-mode-switch-on-command",
 	"qcom,mdss-dsi-qsync-on-commands",
 	"qcom,mdss-dsi-qsync-off-commands",
+#ifdef OPLUS_BUG_STABILITY
+	"qcom,mdss-dsi-post-on-backlight",
+	"qcom,mdss-dsi-aod-on-command",
+	"qcom,mdss-dsi-aod-off-command",
+	"qcom,mdss-dsi-hbm-on-command",
+	"qcom,mdss-dsi-hbm-off-command",
+	"qcom,mdss-dsi-aod-hbm-on-command",
+	"qcom,mdss-dsi-aod-hbm-off-command",
+	"qcom,mdss-dsi-seed-0-command",
+	"qcom,mdss-dsi-seed-1-command",
+	"qcom,mdss-dsi-seed-2-command",
+	"qcom,mdss-dsi-seed-3-command",
+	"qcom,mdss-dsi-seed-4-command",
+	"qcom,mdss-dsi-seed-off-command",
+	"qcom,mdss-dsi-normal-hbm-on-command",
+	"qcom,mdss-dsi-aod-high-mode-command",
+	"qcom,mdss-dsi-aod-low-mode-command",
+	"qcom,mdss-dsi-spr-0-command",
+	"qcom,mdss-dsi-spr-1-command",
+	"qcom,mdss-dsi-spr-2-command",
+	"qcom,mdss-dsi-data-dimming-on-command",
+	"qcom,mdss-dsi-data-dimming-off-command",
+	"qcom,mdss-dsi-osc-clk-mode0-command",
+	"qcom,mdss-dsi-osc-clk-mode1-command",
+	"qcom,mdss-dsi-panel-id1-command",
+	"qcom,mdss-dsi-panel-read-register-open-command",
+	"qcom,mdss-dsi-panel-read-register-close-command",
+	"qcom,mdss-dsi-cabc-off-command",
+	"qcom,mdss-dsi-cabc-ui-command",
+	"qcom,mdss-dsi-cabc-still-image-command",
+	"qcom,mdss-dsi-cabc-video-command",
+	"qcom,mdss-dsi-loading-effect-1-command",
+	"qcom,mdss-dsi-loading-effect-2-command",
+	"qcom,mdss-dsi-loading-effect-off-command",
+	"qcom,mdss-dsi-ili-read-on-command",
+	"qcom,mdss-dsi-ili-read-off-command",
+#endif /*OPLUS_BUG_STABILITY*/
 };
 
 const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
@@ -1783,7 +2098,49 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-post-mode-switch-on-command-state",
 	"qcom,mdss-dsi-qsync-on-commands-state",
 	"qcom,mdss-dsi-qsync-off-commands-state",
+#ifdef OPLUS_BUG_STABILITY
+	"qcom,mdss-dsi-post-on-backlight-state",
+	"qcom,mdss-dsi-aod-on-command-state",
+	"qcom,mdss-dsi-aod-off-command-state",
+	"qcom,mdss-dsi-hbm-on-command-state",
+	"qcom,mdss-dsi-hbm-off-command-state",
+	"qcom,mdss-dsi-aod-hbm-on-command-state",
+	"qcom,mdss-dsi-aod-hbm-off-command-state",
+	"qcom,mdss-dsi-seed-0-command-state",
+	"qcom,mdss-dsi-seed-1-command-state",
+	"qcom,mdss-dsi-seed-2-command-state",
+	"qcom,mdss-dsi-seed-3-command-state",
+	"qcom,mdss-dsi-seed-4-command-state",
+	"qcom,mdss-dsi-seed-off-command-state",
+	"qcom,mdss-dsi-normal-hbm-on-command-state",
+	"qcom,mdss-dsi-aod-high-mode-command-state",
+	"qcom,mdss-dsi-aod-low-mode-command-state",
+	"qcom,mdss-dsi-spr-0-command-state",
+	"qcom,mdss-dsi-spr-1-command-state",
+	"qcom,mdss-dsi-spr-2-command-state",
+	"qcom,mdss-dsi-data-dimming-on-command-state",
+	"qcom,mdss-dsi-data-dimming-off-command-state",
+	"qcom,mdss-dsi-osc-clk-mode0-command-state",
+	"qcom,mdss-dsi-osc-clk-mode1-command-state",
+	"qcom,mdss-dsi-panel-id1-command-state",
+	"qcom,mdss-dsi-panel-read-register-open-state",
+	"qcom,mdss-dsi-panel-read-register-close-state",
+	"qcom,mdss-dsi-cabc-off-command-state",
+	"qcom,mdss-dsi-cabc-ui-command-state",
+	"qcom,mdss-dsi-cabc-still-image-command-state",
+	"qcom,mdss-dsi-cabc-video-command-state",
+	"qcom,mdss-dsi-loading-effect-1-command-state",
+	"qcom,mdss-dsi-loading-effect-2-command-state",
+	"qcom,mdss-dsi-loading-effect-off-command-state",
+	"qcom,mdss-dsi-ili-read-on-command-state",
+	"qcom,mdss-dsi-ili-read-off-command-state",
+#endif /*OPLUS_BUG_STABILITY*/
 };
+
+#ifdef OPLUS_BUG_STABILITY
+EXPORT_SYMBOL(cmd_set_prop_map);
+EXPORT_SYMBOL(cmd_set_state_map);
+#endif
 
 int dsi_panel_get_cmd_pkt_count(const char *data, u32 length, u32 *cnt)
 {
@@ -2158,6 +2515,13 @@ static int dsi_panel_parse_jitter_config(
 	return 0;
 }
 
+#ifdef OPLUS_BUG_STABILITY
+__attribute__((weak)) int dsi_panel_parse_panel_power_cfg(struct dsi_panel *panel)
+{
+	return 0;
+}
+#endif /* OPLUS_BUG_STABILITY */
+
 static int dsi_panel_parse_power_cfg(struct dsi_panel *panel)
 {
 	int rc = 0;
@@ -2240,6 +2604,21 @@ static int dsi_panel_parse_gpios(struct dsi_panel *panel)
 		DSI_ERR("[%s] failed get reset gpio, rc=%d\n", panel->name, rc);
 		goto error;
 	}
+
+#ifdef OPLUS_BUG_STABILITY
+	panel->reset_config.panel_vout_gpio = utils->get_named_gpio(utils->data,
+					      "qcom,platform-panel-vout-gpio", 0);
+
+	if (!gpio_is_valid(panel->reset_config.panel_vout_gpio)) {
+		DSI_DEBUG("[%s] failed get panel_vout_gpio, rc=%d\n", panel->name, rc);
+	}
+	panel->reset_config.panel_vddr_aod_en_gpio = utils->get_named_gpio(utils->data,
+					      "qcom,platform-panel-vddr-aod-en-gpio", 0);
+
+	if (!gpio_is_valid(panel->reset_config.panel_vddr_aod_en_gpio)) {
+		DSI_DEBUG("[%s] failed get panel_vddr_aod_en_gpio, rc=%d\n", panel->name, rc);
+	}
+#endif
 
 	panel->reset_config.disp_en_gpio = utils->get_named_gpio(utils->data,
 						"qcom,5v-boost-gpio",
@@ -2446,6 +2825,36 @@ static int dsi_panel_parse_bl_config(struct dsi_panel *panel)
 
 	panel->bl_config.bl_inverted_dbv = utils->read_bool(utils->data,
 		"qcom,mdss-dsi-bl-inverted-dbv");
+
+#ifdef OPLUS_BUG_STABILITY
+	rc = utils->read_u32(utils->data, "qcom,mdss-dsi-bl-normal-max-level", &val);
+	if (rc) {
+		DSI_DEBUG("[%s] bl-max-level unspecified, defaulting to max level\n",
+			 panel->name);
+		panel->bl_config.bl_normal_max_level = panel->bl_config.bl_max_level;
+	} else {
+		panel->bl_config.bl_normal_max_level = val;
+	}
+
+	rc = utils->read_u32(utils->data, "qcom,mdss-brightness-normal-max-level",
+		&val);
+	if (rc) {
+		DSI_DEBUG("[%s] brigheness-max-level unspecified, defaulting to 255\n",
+			 panel->name);
+		panel->bl_config.brightness_normal_max_level = panel->bl_config.brightness_max_level;
+	} else {
+		panel->bl_config.brightness_normal_max_level = val;
+	}
+
+	rc = utils->read_u32(utils->data, "qcom,mdss-brightness-default-level", &val);
+	if (rc) {
+		DSI_DEBUG("[%s] brightness-default-level unspecified, defaulting normal max\n",
+			 panel->name);
+		panel->bl_config.brightness_default_level = panel->bl_config.brightness_max_level;
+	} else {
+		panel->bl_config.brightness_default_level = val;
+	}
+#endif
 
 	state = utils->get_property(utils->data, "qcom,bl-dsc-cmd-state", NULL);
 	if (!state || !strcmp(state, "dsi_hs_mode"))
@@ -3372,6 +3781,22 @@ static int dsi_panel_parse_esd_config(struct dsi_panel *panel)
 	esd_config->esd_enabled = utils->read_bool(utils->data,
 		"qcom,esd-check-enabled");
 
+#ifdef OPLUS_BUG_STABILITY
+	switch(get_boot_mode())
+	{
+		case MSM_BOOT_MODE__RF:
+		case MSM_BOOT_MODE__WLAN:
+		case MSM_BOOT_MODE__FACTORY:
+			esd_config->esd_enabled = 0x0;
+			pr_err("%s force disable esd check while in rf,wlan and factory mode, esd staus: 0x%x\n",
+						__func__, esd_config->esd_enabled);
+			break;
+
+		default:
+			break;
+	}
+#endif /*OPLUS_BUG_STABILITY*/
+
 	if (!esd_config->esd_enabled)
 		return 0;
 
@@ -3548,6 +3973,12 @@ struct dsi_panel *dsi_panel_get(struct device *parent,
 		DSI_ERR("failed to parse panel gpios, rc=%d\n", rc);
 		goto error;
 	}
+
+#ifdef OPLUS_BUG_STABILITY
+	rc = dsi_panel_parse_oplus_config(panel);
+	if (rc)
+		DSI_ERR("failed to parse panel config, rc=%d\n", rc);
+#endif /* OPLUS_BUG_STABILITY */
 
 	rc = dsi_panel_parse_tlmm_gpio(panel);
 	if (rc) {
@@ -4102,6 +4533,13 @@ int dsi_panel_get_mode(struct dsi_panel *panel,
 			goto parse_fail;
 		}
 
+#ifdef OPLUS_BUG_STABILITY
+		rc = dsi_panel_parse_oplus_mode_config(mode, utils);
+		if (rc)
+			DSI_ERR(
+			"failed to parse oplus config, rc=%d\n", rc);
+#endif
+
 		rc = dsi_panel_parse_jitter_config(mode, utils);
 		if (rc)
 			DSI_ERR(
@@ -4199,6 +4637,42 @@ int dsi_panel_pre_prepare(struct dsi_panel *panel)
 
 	mutex_lock(&panel->panel_lock);
 
+#ifdef OPLUS_BUG_STABILITY
+	if (!strcmp(panel->name,"nt36672c tm fhd plus video mode dsi panel") \
+		|| !strcmp(panel->name,"nt36672c dsjm fhd plus video mode dsi panel") \
+		|| !strcmp(panel->name,"ili7807s tm fhd plus video mode dsi panel")) {
+		if (gpio_is_valid(panel->reset_config.reset_gpio) \
+			&& (true == is_pd_with_guesture)) {
+			rc = gpio_direction_output(panel->reset_config.reset_gpio, 0);
+			if (rc) {
+				DSI_ERR("unable to set dir for  reset gpio rc=%d", rc);
+			}
+			gpio_set_value(panel->reset_config.reset_gpio, 0);
+			usleep_range(9000, 10000);
+			pr_err("%s: reset gpio 0", __func__);
+		}
+
+#ifdef OPLUS_FEATURE_TP_BASIC
+		if (true != is_pd_with_guesture) {
+			pr_err("[TP]:power_on-is_pd_with_guesture = false\n");
+			rc = dsi_pwr_enable_regulator(&panel->power_info, true);
+		}
+		if (rc) {
+			DSI_ERR("[%s] failed to enable vregs, rc=%d\n",
+					panel->name, rc);
+			goto error;
+		}
+#else
+		rc = dsi_pwr_enable_regulator(&panel->power_info, true);
+		if (rc) {
+			DSI_ERR("[%s] failed to enable vregs, rc=%d\n",
+					panel->name, rc);
+			goto error;
+		}
+#endif /* OPLUS_FEATURE_TP_BASIC */
+	}
+#endif
+
 	/* If LP11_INIT is set, panel will be powered up during prepare() */
 	if (panel->lp11_init)
 		goto error;
@@ -4270,6 +4744,10 @@ int dsi_panel_set_lp1(struct dsi_panel *panel)
 		return -EINVAL;
 	}
 
+#ifdef OPLUS_BUG_STABILITY
+	pr_err("debug for dsi_panel_set_lp1\n");
+#endif
+
 	mutex_lock(&panel->panel_lock);
 	if (!panel->panel_initialized)
 		goto exit;
@@ -4289,10 +4767,19 @@ int dsi_panel_set_lp1(struct dsi_panel *panel)
 	if (rc)
 		DSI_ERR("[%s] failed to send DSI_CMD_SET_LP1 cmd, rc=%d\n",
 		       panel->name, rc);
+#ifdef OPLUS_BUG_STABILITY
+	oplus_update_aod_light_mode_unlock(panel);
+	panel->need_power_on_backlight = true;
+	set_oplus_display_power_status(OPLUS_DISPLAY_POWER_DOZE);
+#endif
 exit:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
 }
+
+#ifdef OPLUS_BUG_STABILITY
+EXPORT_SYMBOL(dsi_panel_set_lp1);
+#endif
 
 int dsi_panel_set_lp2(struct dsi_panel *panel)
 {
@@ -4303,6 +4790,10 @@ int dsi_panel_set_lp2(struct dsi_panel *panel)
 		return -EINVAL;
 	}
 
+#ifdef OPLUS_BUG_STABILITY
+	pr_err("debug for dsi_panel_set_lp2\n");
+#endif
+
 	mutex_lock(&panel->panel_lock);
 	if (!panel->panel_initialized)
 		goto exit;
@@ -4311,10 +4802,17 @@ int dsi_panel_set_lp2(struct dsi_panel *panel)
 	if (rc)
 		DSI_ERR("[%s] failed to send DSI_CMD_SET_LP2 cmd, rc=%d\n",
 		       panel->name, rc);
+#ifdef OPLUS_BUG_STABILITY
+	set_oplus_display_power_status(OPLUS_DISPLAY_POWER_DOZE_SUSPEND);
+#endif
 exit:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
 }
+
+#ifdef OPLUS_BUG_STABILITY
+EXPORT_SYMBOL(dsi_panel_set_lp2);
+#endif
 
 int dsi_panel_set_nolp(struct dsi_panel *panel)
 {
@@ -4329,6 +4827,10 @@ int dsi_panel_set_nolp(struct dsi_panel *panel)
 		DSI_DEBUG("TWM Enabled, skip idle off\n");
 		return rc;
 	}
+#ifdef OPLUS_BUG_STABILITY
+	pr_err("debug for dsi_panel_set_nolp\n");
+#endif
+
 	mutex_lock(&panel->panel_lock);
 	if (!panel->panel_initialized)
 		goto exit;
@@ -4345,10 +4847,17 @@ int dsi_panel_set_nolp(struct dsi_panel *panel)
 	if (rc)
 		DSI_ERR("[%s] failed to send DSI_CMD_SET_NOLP cmd, rc=%d\n",
 		       panel->name, rc);
+#ifdef OPLUS_BUG_STABILITY
+	set_oplus_display_power_status(OPLUS_DISPLAY_POWER_ON);
+#endif
 exit:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
 }
+
+#ifdef OPLUS_BUG_STABILITY
+EXPORT_SYMBOL(dsi_panel_set_nolp);
+#endif
 
 int dsi_panel_prepare(struct dsi_panel *panel)
 {
@@ -4672,6 +5181,10 @@ int dsi_panel_enable(struct dsi_panel *panel)
 		return -EINVAL;
 	}
 
+
+#ifdef OPLUS_BUG_STABILITY
+	pr_err("%s\n", __func__);
+#endif
 	mutex_lock(&panel->panel_lock);
 
 	rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_ON);
@@ -4680,6 +5193,13 @@ int dsi_panel_enable(struct dsi_panel *panel)
 		       panel->name, rc);
 	else
 		panel->panel_initialized = true;
+
+
+#ifdef OPLUS_BUG_STABILITY
+	panel->need_power_on_backlight = true;
+	set_oplus_display_power_status(OPLUS_DISPLAY_POWER_ON);
+#endif
+
 	mutex_unlock(&panel->panel_lock);
 	return rc;
 }
@@ -4705,6 +5225,40 @@ error:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
 }
+
+#ifdef OPLUS_BUG_STABILITY
+int dsi_panel_ili_read_enable(struct dsi_panel *panel, int enable)
+{
+	int rc = 0;
+
+	if (!panel) {
+		DSI_ERR("invalid params\n");
+		return -EINVAL;
+	}
+
+	if (strcmp(panel->oplus_priv.vendor_name,"ILI7807S-90HZ")) {
+		return rc;
+	}
+
+	if (enable) {
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_ILI_READ_ON);
+		if (rc) {
+			DSI_ERR("[%s] failed to send DSI_CMD_SET_ILI_READ_ON cmds, rc=%d\n",
+			       panel->name, rc);
+			goto error;
+		}
+	} else {
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_ILI_READ_OFF);
+		if (rc) {
+			DSI_ERR("[%s] failed to send DSI_CMD_SET_ILI_READ_OFF cmds, rc=%d\n",
+			       panel->name, rc);
+			goto error;
+		}
+	}
+error:
+	return rc;
+}
+#endif /*OPLUS_BUG_STABILITY*/
 
 int dsi_panel_pre_disable(struct dsi_panel *panel)
 {
@@ -4745,7 +5299,29 @@ int dsi_panel_disable(struct dsi_panel *panel)
 		DSI_DEBUG("TWM Enabled, skip panel disable\n");
 		return rc;
 	}
+#ifdef OPLUS_BUG_STABILITY
+	pr_err("%s\n", __func__);
+#endif
 	mutex_lock(&panel->panel_lock);
+
+#ifdef OPLUS_FEATURE_TP_BASIC
+	if(!strcmp(panel->name,"ili7807s tm fhd plus video mode dsi panel")) {
+		if((get_boot_mode() == MSM_BOOT_MODE__FACTORY) ||
+			(get_boot_mode() == MSM_BOOT_MODE__RF) ||
+			(get_boot_mode() == MSM_BOOT_MODE__WLAN)) {
+			if(tp_ftm_extra_notifier) {
+				tp_ftm_extra_notifier(0);
+				pr_err("[TP] ilitek tp ftm mode goto sleep\n");
+			}
+		}
+		usleep_range(10000, 10000);
+	}
+#endif /* OPLUS_FEATURE_TP_BASIC */
+
+#ifdef OPLUS_BUG_STABILITY
+	if(!strcmp(panel->oplus_priv.vendor_name,"ILI7807S-90HZ"))
+				usleep_range(18000, 18000);
+#endif /*OPLUS_BUG_STABILITY*/
 
 	/* Avoid sending panel off commands when ESD recovery is underway */
 	if (!atomic_read(&panel->esd_recovery_pending)) {
@@ -4772,6 +5348,10 @@ int dsi_panel_disable(struct dsi_panel *panel)
 		}
 	}
 	panel->panel_initialized = false;
+#ifdef OPLUS_BUG_STABILITY
+	panel->is_hbm_enabled = false;
+	set_oplus_display_power_status(OPLUS_DISPLAY_POWER_OFF);
+#endif
 	panel->power_mode = SDE_MODE_DPMS_OFF;
 
 	mutex_unlock(&panel->panel_lock);
@@ -4781,6 +5361,10 @@ int dsi_panel_disable(struct dsi_panel *panel)
 int dsi_panel_unprepare(struct dsi_panel *panel)
 {
 	int rc = 0;
+
+#ifdef OPLUS_FEATURE_TP_BASIC
+	int mode = 0;
+#endif /* OPLUS_FEATURE_TP_BASIC */
 
 	if (!panel) {
 		DSI_ERR("invalid params\n");
@@ -4796,6 +5380,31 @@ int dsi_panel_unprepare(struct dsi_panel *panel)
 		goto error;
 	}
 
+#ifdef OPLUS_BUG_STABILITY
+	if (!strcmp(panel->name,"nt36672c tm fhd plus video mode dsi panel") \
+		|| !strcmp(panel->name,"nt36672c dsjm fhd plus video mode dsi panel") \
+		|| !strcmp(panel->name,"ili7807s tm fhd plus video mode dsi panel")) {
+#ifdef OPLUS_FEATURE_TP_BASIC
+		mode = get_boot_mode();
+		pr_err("[TP] in dsi_panel_unprepare, mode=%d\n",mode);
+		if((mode != MSM_BOOT_MODE__FACTORY) && (mode != MSM_BOOT_MODE__RF) && (mode != MSM_BOOT_MODE__WLAN)) {
+			if ((1 != tp_gesture_enable_notifier(0)) || (shutdown_flag == 1)) {
+				pr_info("%s:%d tp gesture is off set reset 0", __func__, __LINE__);
+				if (gpio_is_valid(panel->reset_config.reset_gpio))
+					gpio_set_value(panel->reset_config.reset_gpio, 0);
+				usleep_range(5000, 6000);
+				if(!strcmp(panel->name,"ili7807s tm fhd plus video mode dsi panel") && tp_reset_gpio_notifier) {
+					tp_reset_gpio_notifier(0, 0);
+				}
+			}
+		}
+#else
+		if (gpio_is_valid(panel->reset_config.reset_gpio))
+			gpio_set_value(panel->reset_config.reset_gpio, 0);
+		usleep_range(5000, 6000);
+#endif /* OPLUS_FEATURE_TP_BASIC */
+	}
+#endif /*OPLUS_BUG_STABILITY*/
 error:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
