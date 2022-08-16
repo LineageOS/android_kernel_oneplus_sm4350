@@ -20,6 +20,13 @@
 #include "dsi_pwr.h"
 #include "dsi_parser.h"
 #include "msm_drv.h"
+#ifdef OPLUS_BUG_STABILITY
+#include "oplus_dsi_support.h"
+struct oplus_brightness_alpha {
+	u32 brightness;
+	u32 alpha;
+};
+#endif /*OPLUS_BUG_STABILITY*/
 
 #define MAX_BL_LEVEL 4096
 #define MAX_BL_SCALE_LEVEL 1024
@@ -121,6 +128,12 @@ struct dsi_backlight_config {
 	u32 bl_min_level;
 	u32 bl_max_level;
 	u32 brightness_max_level;
+#ifdef OPLUS_BUG_STABILITY
+	u32 bl_normal_max_level;
+	u32 brightness_normal_max_level;
+	u32 brightness_default_level;
+#endif /* OPLUS_BUG_STABILITY */
+
 	u32 bl_level;
 	u32 bl_scale;
 	u32 bl_scale_sv;
@@ -153,6 +166,10 @@ struct dsi_panel_reset_config {
 	int disp_en_gpio;
 	int lcd_mode_sel_gpio;
 	u32 mode_sel_state;
+#ifdef OPLUS_BUG_STABILITY
+	int panel_vout_gpio;
+	int panel_vddr_aod_en_gpio;
+#endif
 };
 
 enum esd_check_status_mode {
@@ -176,6 +193,17 @@ struct drm_panel_esd_config {
 	u8 *status_buf;
 	u32 groups;
 };
+
+#ifdef OPLUS_BUG_STABILITY
+struct dsi_panel_oplus_privite {
+	const char *vendor_name;
+	const char *manufacture_name;
+	bool skip_mipi_last_cmd;
+	bool is_pxlw_iris5;
+	bool dfps_idle_off;
+	bool cabc_enabled;
+};
+#endif /* OPLUS_BUG_STABILITY */
 
 struct dsi_panel_spr_info {
 	bool enable;
@@ -256,6 +284,14 @@ struct dsi_panel {
 	struct dsi_panel_spr_info spr_info;
 
 	bool sync_broadcast_en;
+#ifdef OPLUS_BUG_STABILITY
+	bool is_hbm_enabled;
+	/* Fix aod flash problem */
+	bool need_power_on_backlight;
+	struct oplus_brightness_alpha *ba_seq;
+	int ba_count;
+	struct dsi_panel_oplus_privite oplus_priv;
+#endif
 	u32 dsc_count;
 	u32 lm_count;
 
@@ -390,6 +426,11 @@ int dsi_panel_get_io_resources(struct dsi_panel *panel,
 
 void dsi_panel_calc_dsi_transfer_time(struct dsi_host_common_cfg *config,
 		struct dsi_display_mode *mode, u32 frame_threshold_us);
+
+#ifdef OPLUS_BUG_STABILITY
+int dsi_panel_tx_cmd_set(struct dsi_panel *panel,
+			   enum dsi_cmd_set_type type);
+#endif
 
 int dsi_panel_get_cmd_pkt_count(const char *data, u32 length, u32 *cnt);
 
