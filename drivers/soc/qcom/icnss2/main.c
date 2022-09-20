@@ -908,8 +908,8 @@ static int icnss_driver_event_fw_ready_ind(struct icnss_priv *priv, void *data)
 	if (test_bit(ICNSS_PD_RESTART, &priv->state)) {
 		ret = icnss_pd_restart_complete(priv);
 	} else {
-		if (priv->device_id == WCN6750_DEVICE_ID)
-			icnss_setup_dms_mac(priv);
+		//if (priv->device_id == WCN6750_DEVICE_ID)
+		icnss_setup_dms_mac(priv);
 		ret = icnss_call_driver_probe(priv);
 	}
 
@@ -2996,8 +2996,7 @@ int icnss_wlan_enable(struct device *dev, struct icnss_wlan_enable_cfg *config,
 		return -EINVAL;
 	}
 
-	if (priv->device_id == WCN6750_DEVICE_ID &&
-	    !priv->dms.nv_mac_not_prov && !priv->dms.mac_valid)
+	if (!priv->dms.nv_mac_not_prov && !priv->dms.mac_valid)
 		icnss_setup_dms_mac(priv);
 
 	return icnss_send_wlan_enable_to_fw(priv, config, mode, host_version);
@@ -4123,6 +4122,12 @@ static int icnss_probe(struct platform_device *pdev)
 
 	init_completion(&priv->unblock_shutdown);
 
+	ret = icnss_dms_init(priv);
+	if (ret)
+		icnss_pr_err("ICNSS DMS init failed %d\n", ret);
+	priv->use_nv_mac = icnss_use_nv_mac(priv);
+
+	/* will never run on wcn3990 */
 	if (priv->device_id == WCN6750_DEVICE_ID) {
 		ret = icnss_dms_init(priv);
 		if (ret)
@@ -4184,8 +4189,9 @@ static int icnss_remove(struct platform_device *pdev)
 
 	icnss_pr_info("Removing driver: state: 0x%lx\n", priv->state);
 
+	icnss_dms_deinit(priv);
 	if (priv->device_id == WCN6750_DEVICE_ID) {
-		icnss_dms_deinit(priv);
+		//icnss_dms_deinit(priv);
 		icnss_genl_exit();
 		icnss_runtime_pm_deinit(priv);
 #ifdef CONFIG_ICNSS2_RESTART_LEVEL_NOTIF
