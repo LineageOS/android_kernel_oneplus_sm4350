@@ -135,7 +135,11 @@ do {                                                    \
 				  SND_JACK_BTN_2 | SND_JACK_BTN_3 | \
 				  SND_JACK_BTN_4 | SND_JACK_BTN_5)
 #define OCP_ATTEMPT 20
+#ifndef OPLUS_ARCH_EXTENDS
 #define HS_DETECT_PLUG_TIME_MS (3 * 1000)
+#else /* OPLUS_ARCH_EXTENDS */
+#define HS_DETECT_PLUG_TIME_MS (5 * 1000)
+#endif /* OPLUS_ARCH_EXTENDS */
 #define SPECIAL_HS_DETECT_TIME_MS (2 * 1000)
 #define MBHC_BUTTON_PRESS_THRESHOLD_MIN 250
 #define GND_MIC_SWAP_THRESHOLD 4
@@ -619,6 +623,18 @@ struct wcd_mbhc {
 	bool force_linein;
 	struct device_node *fsa_np;
 	struct notifier_block fsa_nb;
+	#ifdef OPLUS_ARCH_EXTENDS
+	bool need_cross_conn;
+	struct delayed_work hp_detect_work;
+	#endif
+
+	#ifdef OPLUS_ARCH_EXTENDS
+	bool headset_micbias_alwayon;
+	#endif /* OPLUS_ARCH_EXTENDS */
+
+	#ifdef OPLUS_FEATURE_IMPEDANCE_MATCH
+	bool enable_hp_impedance_detect;
+	#endif /* OPLUS_FEATURE_IMPEDANCE_MATCH */
 };
 
 void wcd_mbhc_find_plug_and_report(struct wcd_mbhc *mbhc,

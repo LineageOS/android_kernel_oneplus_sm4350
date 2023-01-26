@@ -18,7 +18,10 @@
 #include <linux/slab.h>
 #include <soc/qcom/boot_stats.h>
 #include <soc/qcom/subsystem_restart.h>
-
+//ifdef OPLUS_FEATURE_SENSOR_DRIVER
+//tangweiqin@BSP,Sensor,20201216,modify for sensor 1.8v always on
+#include <linux/regulator/consumer.h>
+//endif
 #define Q6_PIL_GET_DELAY_MS 100
 #define BOOT_CMD 1
 #define SSR_RESET_CMD 1
@@ -111,7 +114,10 @@ static void adsp_load_fw(struct work_struct *adsp_ldr_work)
 	u32 adsp_state;
 	const char *img_name;
 	void *padsp_restart_cb = &adsp_load_state_notify_cb;
-
+//ifdef OPLUS_FEATURE_SENSOR_DRIVER
+//tangweiqin@BSP,Sensor,20201216,modify for sensor 1.8v always on
+	struct regulator *vdd_1v8 = NULL;
+//endif
 	if (!pdev) {
 		dev_err(&pdev->dev, "%s: Platform device null\n", __func__);
 		goto fail;
@@ -122,6 +128,21 @@ static void adsp_load_fw(struct work_struct *adsp_ldr_work)
 			"%s: Device tree information missing\n", __func__);
 		goto fail;
 	}
+
+//ifdef OPLUS_FEATURE_SENSOR_DRIVER
+//tangweiqin@BSP,Sensor,20201216,modify for sensor 1.8v always on
+	vdd_1v8 = regulator_get(&pdev->dev, "vddio");
+
+	if (vdd_1v8 != NULL)
+	{
+		dev_err(&pdev->dev,"%s: vdd_1v8 is not NULL\n", __func__);
+		regulator_set_voltage(vdd_1v8, 1704000, 1952000);
+		regulator_set_load(vdd_1v8, 200000);
+		regulator_enable(vdd_1v8);
+	}
+	else
+		dev_err(&pdev->dev,"%s: vdd_1v8 is NULL\n", __func__);
+//endif
 
 	rc = of_property_read_u32(pdev->dev.of_node, adsp_dt, &adsp_state);
 	if (rc) {

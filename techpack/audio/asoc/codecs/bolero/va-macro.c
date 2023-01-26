@@ -3220,8 +3220,14 @@ static int va_macro_probe(struct platform_device *pdev)
 	pm_runtime_set_suspended(&pdev->dev);
 	pm_suspend_ignore_children(&pdev->dev, true);
 	pm_runtime_enable(&pdev->dev);
+	#ifdef OPLUS_BUG_STABILITY
+	dev_err(&pdev->dev, "%s: pm_runtime_enable done\n", __func__);
+	#endif /* OPLUS_BUG_STABILITY */
 	if (is_used_va_swr_gpio)
 		schedule_work(&va_priv->va_macro_add_child_devices_work);
+	#ifdef OPLUS_BUG_STABILITY
+	dev_err(&pdev->dev, "%s: Schedule work triggered.\n", __func__);
+	#endif /* OPLUS_BUG_STABILITY */
 	return ret;
 
 reg_macro_fail:
