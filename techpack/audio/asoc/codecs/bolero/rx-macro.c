@@ -4293,7 +4293,13 @@ static int rx_macro_probe(struct platform_device *pdev)
 	pm_runtime_set_suspended(&pdev->dev);
 	pm_suspend_ignore_children(&pdev->dev, true);
 	pm_runtime_enable(&pdev->dev);
+	#ifdef OPLUS_BUG_STABILITY
+	dev_err(&pdev->dev, "%s: pm_runtime_enable done\n", __func__);
+	#endif /* OPLUS_BUG_STABILITY */
 	schedule_work(&rx_priv->rx_macro_add_child_devices_work);
+	#ifdef OPLUS_BUG_STABILITY
+	dev_err(&pdev->dev, "%s: schedule work done\n", __func__);
+	#endif /* OPLUS_BUG_STABILITY */
 
 	return 0;
 

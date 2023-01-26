@@ -10,6 +10,9 @@
 #include <linux/kernel.h>
 #include <linux/component.h>
 #include <soc/soundwire.h>
+#ifdef OPLUS_BUG_STABILITY
+#include <linux/delay.h>
+#endif /* OPLUS_BUG_STABILITY */
 
 #define SWR_MAX_RETRY 5
 
