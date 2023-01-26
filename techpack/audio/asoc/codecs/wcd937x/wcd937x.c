@@ -1934,6 +1934,45 @@ static int wcd937x_tx_ch_pwr_level_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+
+#ifdef OPLUS_ARCH_EXTENDS
+static const char * const wcd_reg_dump_text[] = {
+	"ALL",
+};
+
+static SOC_ENUM_SINGLE_EXT_DECL(wcd_reg_dump_enum,
+				wcd_reg_dump_text);
+static int wcd_reg_dump_set(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	int i = 0;
+	u32 reg = 0;
+	struct snd_soc_component *component = NULL;
+	struct wcd937x_priv *wcd937x = NULL;
+
+	if (!kcontrol) {
+		return -1;
+	}
+	component = snd_soc_kcontrol_component(kcontrol);
+
+	if (!component) {
+		return -1;
+	}
+	wcd937x = snd_soc_component_get_drvdata(component);
+
+	if (!wcd937x || !(wcd937x->regmap)) {
+		return -1;
+	}
+	dev_err(component->dev, "wcd_reg_dump");
+	for (i = WCD937X_BASE_ADDRESS + 1; i <= wcd937x_regmap_config.max_register; i++) {
+		regmap_read(wcd937x->regmap, i, &reg);
+		dev_err(component->dev, "%04x:%04x\n", i, reg);
+	}
+	dev_err(component->dev, "wcd_reg_dump end");
+	return 0;
+}
+#endif
+
 static int wcd937x_ear_pa_gain_get(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
 {
@@ -2244,6 +2283,10 @@ static const struct snd_kcontrol_new wcd937x_snd_controls[] = {
 		wcd937x_tx_ch_pwr_level_get, wcd937x_tx_ch_pwr_level_put),
 	SOC_ENUM_EXT("TX CH3 PWR", wcd937x_tx_ch_pwr_level_enum,
 		wcd937x_tx_ch_pwr_level_get, wcd937x_tx_ch_pwr_level_put),
+	#ifdef OPLUS_ARCH_EXTENDS
+	SOC_ENUM_EXT("WCD REG DUMP", wcd_reg_dump_enum,
+		NULL, wcd_reg_dump_set),
+	#endif
 };
 
 static const struct snd_kcontrol_new adc1_switch[] = {
@@ -3290,13 +3333,22 @@ static int wcd937x_bind(struct device *dev)
 	 * soundwire auto enumeration of slave devices as
 	 * as per HW requirement.
 	 */
+#ifdef OPLUS_BUG_STABILITY
+	dev_info(dev, "%s: delay bind wcd\n", __func__);
+	usleep_range(10000, 10010);
+#else /* OPLUS_BUG_STABILITY */
 	usleep_range(5000, 5010);
+#endif /* OPLUS_BUG_STABILITY */
 	wcd937x->wakeup = wcd937x_wakeup;
 
 	ret = component_bind_all(dev, wcd937x);
 	if (ret) {
 		dev_err(dev, "%s: Slave bind failed, ret = %d\n",
 			__func__, ret);
+#ifdef OPLUS_BUG_STABILITY
+		dev_err(dev, "%s: trigger panic\n", __func__);
+		panic("%s: panic for 1068440", __func__);
+#endif /* OPLUS_BUG_STABILITY */
 		goto err_bind_all;
 	}
 

@@ -42,6 +42,10 @@
 #include "holi-port-config.h"
 #include "msm_holi_dailink.h"
 
+//#ifdef OPLUS_ARCH_EXTENDS
+#include "codecs/sia81xx/sia81xx_aux_dev_if.h"
+//#endif /* OPLUS_ARCH_EXTENDS */
+
 #define DRV_NAME "holi-asoc-snd"
 #define __CHIPSET__ "HOLI "
 #define MSM_DAILINK_NAME(name) (__CHIPSET__#name)
@@ -73,7 +77,11 @@
 #define CODEC_EXT_CLK_RATE          9600000
 #define ADSP_STATE_READY_TIMEOUT_MS 3000
 #define DEV_NAME_STR_LEN            32
+#ifndef OPLUS_ARCH_EXTENDS
 #define WCD_MBHC_HS_V_MAX           1600
+#else /* OPLUS_ARCH_EXTENDS */
+#define WCD_MBHC_HS_V_MAX           1700 //lile add
+#endif /* OPLUS_ARCH_EXTENDS */
 
 #define TDM_CHANNEL_MAX		8
 #define DEV_NAME_STR_LEN	32
@@ -747,7 +755,11 @@ static struct wcd_mbhc_config wcd_mbhc_cfg = {
 	.mbhc_micbias = MIC_BIAS_2,
 	.anc_micbias = MIC_BIAS_2,
 	.enable_anc_mic_detect = false,
+	#ifndef OPLUS_ARCH_EXTENDS
 	.moisture_duty_cycle_en = true,
+	#else /* OPLUS_ARCH_EXTENDS */
+	.moisture_duty_cycle_en = false,
+	#endif /* OPLUS_ARCH_EXTENDS */
 };
 
 /* set audio task affinity to core 1 & 2 */
@@ -4758,6 +4770,7 @@ static void *def_wcd_mbhc_cal(void)
 	btn_high = ((void *)&btn_cfg->_v_btn_low) +
 		(sizeof(btn_cfg->_v_btn_low[0]) * btn_cfg->num_btn);
 
+	#ifndef OPLUS_ARCH_EXTENDS
 	btn_high[0] = 75;
 	btn_high[1] = 150;
 	btn_high[2] = 237;
@@ -4766,6 +4779,16 @@ static void *def_wcd_mbhc_cal(void)
 	btn_high[5] = 500;
 	btn_high[6] = 500;
 	btn_high[7] = 500;
+	#else /* OPLUS_ARCH_EXTENDS */
+	btn_high[0] = 130;		/* Hook ,0 ~ 160 Ohm*/
+	btn_high[1] = 131;
+	btn_high[2] = 253;		/* Volume + ,160 ~ 360 Ohm*/
+	btn_high[3] = 425;		/* Volume - ,360 ~ 680 Ohm*/
+	btn_high[4] = 426;
+	btn_high[5] = 426;
+	btn_high[6] = 426;
+	btn_high[7] = 426;
+	#endif /* OPLUS_ARCH_EXTENDS */
 
 	return wcd_mbhc_cal;
 }
@@ -6714,6 +6737,14 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 		ret = -EPROBE_DEFER;
 		goto err;
 	}
+
+//#ifdef OPLUS_ARCH_EXTENDS
+	ret = soc_aux_init_only_sia81xx(pdev, card);
+	if (ret) {
+		pr_err("%s soc_aux_init_only_sia81xx return error.\n", __func__);
+		goto err;
+	}
+//#endif /* OPLUS_ARCH_EXTENDS */
 
 	ret = devm_snd_soc_register_card(&pdev->dev, card);
 	if (ret == -EPROBE_DEFER) {

@@ -134,6 +134,9 @@ static u32 swr_master_read(struct swr_mstr_ctrl *swrm, unsigned int reg_addr);
 static void swr_master_write(struct swr_mstr_ctrl *swrm, u16 reg_addr, u32 val);
 static int swrm_runtime_resume(struct device *dev);
 static void swrm_wait_for_fifo_avail(struct swr_mstr_ctrl *swrm, int swrm_rd_wr);
+#ifdef OPLUS_BUG_STABILITY
+static int swrm_master_init(struct swr_mstr_ctrl *swrm);
+#endif /* OPLUS_BUG_STABILITY */
 
 static u8 swrm_get_device_id(struct swr_mstr_ctrl *swrm, u8 devnum)
 {
@@ -2000,6 +2003,9 @@ static irqreturn_t swr_mstr_interrupt(int irq, void *dev)
 	struct swr_device *swr_dev;
 	struct swr_master *mstr = &swrm->master;
 	int retry = 5;
+	#ifdef OPLUS_BUG_STABILITY
+	int mcp_slv_status;
+	#endif /* OPLUS_BUG_STABILITY */
 
 	if (unlikely(swrm_lock_sleep(swrm) == false)) {
 		dev_err(swrm->dev, "%s Failed to hold suspend\n", __func__);
@@ -2144,7 +2150,22 @@ handle_irq:
 			dev_err_ratelimited(swrm->dev,
 			"%s: SWR CMD error, fifo status 0x%x, flushing fifo\n",
 					__func__, value);
+			#ifndef OPLUS_BUG_STABILITY
 			swr_master_write(swrm, SWRM_CMD_FIFO_CMD, 0x1);
+			#else /* OPLUS_BUG_STABILITY */
+			mcp_slv_status = swr_master_read(swrm, SWRM_MCP_SLV_STATUS);
+			if (!mcp_slv_status && (value & 0x40)) {
+				/* Slave is not enumerated and fifo status gives nack */
+				pr_err("%s: do soft reset for swr when enumeration lost during cmd error.\n",
+						__func__);
+				swr_master_write(swrm, SWRM_CMD_FIFO_CMD, 0x1);
+				swr_master_write(swrm, SWRM_COMP_SW_RESET, 0x01);
+				swrm_master_init(swrm);
+				/* wait for hw enumeration to complete */
+				usleep_range(100, 105);
+			} else
+				swr_master_write(swrm, SWRM_CMD_FIFO_CMD, 0x1);
+			#endif /* OPLUS_BUG_STABILITY */
 			break;
 		case SWRM_INTERRUPT_STATUS_DOUT_PORT_COLLISION:
 			dev_err_ratelimited(swrm->dev,
