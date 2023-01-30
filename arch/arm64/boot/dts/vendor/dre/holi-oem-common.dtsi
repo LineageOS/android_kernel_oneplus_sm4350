@@ -1,0 +1,76 @@
+/* DTB: Platform related generic modifications */
+#include "../qcom/holi.dtsi"
+
+&wdog {
+		qcom,bark-time = <22000>;
+};
+
+// xbl_uefi_mem address get from boot_images Core.fdf file: PcdEmbeddedFdBaseAddress + SERIAL_BUFFER_OFFSET,0x9FC00000+0x3F7000=0x9FFF7000
+// kernel boot log: 0x9FE00000~ 0x9FFF7000
+/ {
+    reserved-memory {
+		kboot_uboot_logmem: kboot_uboot_logmem@0x9FE00000 {
+			reg = <0x0 0x9FE00000 0x0 0x200000>;
+			compatible = "oplus,xbl_uefi_kbootlog";
+			xbluefi-offset = <0x1F7000>;
+			no-map;
+		};
+
+	    //#if IS_ENABLED(CONFIG_OPLUS_FEATURE_DUMP_DEVICE_INFO)
+        ramoops: ramoops@0xE9700000 {
+            compatible = "ramoops";
+            reg = <0x0 0xE9700000 0x0 0x600000>;
+            //pmsg-size = <0x200000>;
+            record-size =  <0x40000>; //256k
+            console-size = <0x40000>; //256k
+            ftrace-size =  <0x100000>; //1M
+            pmsg-size=     <0x100000>; //1M
+            devinfo-size=  <0x8000>;  //32k
+		    ecc-size     = <0x0>;
+            mem-type = <2>;
+        };
+    };
+};
+
+&spmi_bus {
+	qcom,pm6350@0 {
+		qcom,power-on@800 {
+			qcom,pmicwd;
+		};
+	};
+};
+
+//#ifdef OPLUS_BUG_STABILITY
+&icnss {
+	use-nv-mac;
+	//Delete L11E for dre
+	/delete-property/vdd-3.3-ch1-supply;
+	/delete-property/qcom,vdd-3.3-ch1-config;
+};
+//#endif /* OPLUS_BUG_STABILITY */
+
+//#ifdef OPLUS_FEATURE_THERMAL_HORAE
+/ {
+        shell_front {
+                compatible = "oplus,shell-temp";
+        };
+
+        shell_frame {
+                compatible = "oplus,shell-temp";
+        };
+
+        shell_back {
+                compatible = "oplus,shell-temp";
+        };
+};
+//#endif
+
+&L11E {
+	regulator-min-microvolt = <2700000>;
+	regulator-max-microvolt = <2700000>;
+	qcom,init-voltage = <2700000>;
+	status = "okay";
+};
+
+
+

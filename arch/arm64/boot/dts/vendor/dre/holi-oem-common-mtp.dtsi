@@ -1,0 +1,182 @@
+#include "../qcom/holi-mtp.dtsi"
+/* DTBO: Platform common generic overlay */
+
+&soc {
+/*#ifdef OPLUS_FEATURE_TP_BASIC*/
+	gpio_keys {
+
+		pinctrl-0 = <&key_vol_down_default>;
+		/* using volume down config update the default value */
+		vol_up {
+			label = "volume_down";
+			gpios = <&pm6350_gpios  2 GPIO_ACTIVE_LOW>;
+			linux,input-type = <1>;
+			linux,code = <KEY_VOLUMEDOWN>;
+			gpio-key,wakeup;
+			debounce-interval = <15>;
+			linux,can-disable;
+		};
+	};
+/*#endif OPLUS_FEATURE_TP_BASIC*/
+
+/*#ifdef OPLUS_FEATURE_TP_BASIC*/
+	devinfo {
+		compatible = "oplus-devinfo";
+
+		//pinctrl-names = "active", "sleep";
+		//pinctrl-0 = <&hw_id_active>;
+		//pinctrl-1 = <&hw_id_sleep>;
+
+		io-channels= <&pm7250b_vadc ADC5_GPIO1>;
+		io-channel-names= "vph_pwr_voltage_sub";
+
+		main-sub {
+			compatible = "hw-match, main-sub";
+			use_pmic_adc;
+			adc_ranges = <0 80
+					81 180
+					181 300
+					301 420
+					421 550
+					551 650
+					651 760
+					761 850
+					851 950
+					951 1050
+					1051 1150
+					1151 1300>;
+			aboard-patterns = <0 0>;
+
+			/*main board*/
+			match-projects = <133144 133180>;
+
+			/*rf type*/
+			/*rf_match_support;
+			rf-patterns = <0 1 0 1 1 1>;*/
+		};
+	};
+/*#endif OPLUS_FEATURE_TP_BASIC*/
+
+/*#ifdef OPLUS_FEATURE_TP_BASIC*/
+	pinctrl@400000 {
+		qupv3_se0_spi_pins {
+
+			qupv3_se0_spi_sleep: qupv3_se0_spi_sleep {
+				/delete-node/ mux;
+				/delete-node/ config;
+				mux {
+					pins = "gpio0", "gpio1",
+							"gpio2";
+					function = "qup00";
+				};
+
+				config {
+					pins = "gpio0", "gpio1",
+							"gpio2";
+					drive-strength = <6>;
+					bias-disable;
+				};
+			};
+
+			qupv3_se0_cs_sleep: qupv3_se0_cs_sleep {
+				mux {
+					pins = "gpio3";
+					function = "gpio";
+				};
+
+				config {
+					pins = "gpio3";
+					drive-strength = <2>;
+					/*bias-disable;*/
+					bias-pull-up;
+				};
+			};
+		};
+
+		pmx_ts_default {
+			ili_ts_default: ili_ts_default {
+				mux {
+					pins = "gpio22";
+					function = "gpio";
+				};
+
+				config {
+					pins = "gpio22";
+					drive-strength = <8>;
+					bias-disable;
+				};
+			};
+
+			ili_ts_reset: ili_ts_reset {
+				mux {
+					pins = "gpio21";
+					function = "gpio";
+				};
+
+				config {
+					pins = "gpio21";
+					drive-strength = <8>;
+					output-low;
+				};
+			};
+		};
+	};
+
+	spi@4a80000 {
+		pinctrl-1 = <&qupv3_se0_spi_sleep &qupv3_se0_cs_sleep>;
+	};
+/*#endif OPLUS_FEATURE_TP_BASIC*/
+};
+
+&pm6350_gpios {
+
+	key_vol_down {
+		key_vol_down_default: key_vol_down_default {
+			pins = "gpio2";
+			function = "normal";
+			input-enable;
+			bias-pull-up;
+			power-source = <0>;
+		};
+	};
+};
+
+&spmi_bus {
+	qcom,pm6350@0 {
+		qcom,power-on@800 {
+/*#ifdef OPLUS_FEATURE_TP_BASIC*/
+			qcom,pon_2 {
+					qcom,pon-type = <PON_POWER_ON_TYPE_RESIN>;
+					qcom,pull-up;
+					linux,code = <KEY_VOLUMEUP>;
+			};
+/*#endif OPLUS_FEATURE_TP_BASIC*/
+		};
+	};
+};
+
+&pm7250b_gpios {
+/*#ifdef OPLUS_FEATURE_TP_BASIC*/
+	pm7250b_gpio11 {
+		pm7250b_gpio11_default: pm7250b_gpio11_default {
+			pins = "gpio11";
+			bias-high-impedance;
+		};
+	};
+/*#endif OPLUS_FEATURE_TP_BASIC*/
+};
+
+&pm7250b_vadc {
+/*#ifdef OPLUS_FEATURE_TP_BASIC*/
+	pinctrl-names = "default";
+	pinctrl-0 = <&pm7250b_gpio11_default>;
+
+	gpio1_100k_pu {
+		reg = <ADC5_GPIO1>;
+		label = "gpio1_100k_pu";
+		qcom,ratiometric;
+		qcom,hw-settle-time = <200>;
+		qcom,pre-scaling = <1 1>;
+	};
+/*#endif OPLUS_FEATURE_TP_BASIC*/
+};

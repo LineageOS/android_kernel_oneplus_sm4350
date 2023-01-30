@@ -72,7 +72,7 @@
 };
 
 &qupv3_se0_i2c {
-	status = "ok";
+	status = "disabled";
 	#address-cells = <1>;
 	#size-cells = <0>;
 	nq@28 {
@@ -113,12 +113,84 @@
 		};
 	};
 
+	//#ifdef OPLUS_FEATURE_TP_BASIC
+	oplus_sim_detect {
+		compatible = "oplus, sim_detect";
+		Hw,sim_det = <&tlmm 82 0>;
+	};
+	//#endif /* OPLUS_FEATURE_TP_BASIC */
+
 	mtp_batterydata: qcom,battery-data {
 		qcom,batt-id-range-pct = <15>;
 		#include "qg-batterydata-alium-3600mah.dtsi"
 		#include "qg-batterydata-atl466271_3300mAh.dtsi"
 		#include "qg-batterydata-atl436186020H_3780mAh.dtsi"
 	};
+
+	//#ifdef OPLUS_FEATURE_FINGERPRINT
+	oplus_fp_common {
+		compatible = "oplus,fp_common";
+		oplus,fp_gpio_num = <1>;
+		oplus,fp_gpio_0 = <&tlmm 53 0x0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&gpio_id2_default>;
+		goodix_fp_3626 {
+			oplus,fp-id = <1>; /* fp id mapping table */
+			vendor-chip = <16>; /* please refer to the struct fp_vendor_t in oplus_fp_commmon.h */
+			eng-menu = "-1,-1"; /* represents SNR, inclination test item in engineer menu, and 0/1 means off/on */
+			chip-name = "G_3626";  /* /proc/fp_id, will be displayed in engineer menu  */
+		};
+
+		fpc_1542 {
+			oplus,fp-id = <0>; /* fp id mapping table */
+			vendor-chip = <19>; /* please refer to the struct fp_vendor_t in oplus_fp_commmon.h */
+			eng-menu = "-1,-1"; /* represents SNR, inclination test item in engineer menu, and 0/1 means off/on */
+			chip-name = "F_1542";  /* /proc/fp_id, will be displayed in engineer menu  */
+		};
+	};
+
+	fpc_fpc1020 {
+		compatible = "fpc,fpc1020"; //Manufacture, and Model
+		fpc,irq-gpio = <&tlmm 17 0x00>;
+		fpc,reset-gpio = <&tlmm 18 0x0>;
+		avdd_io-supply = <&pm6350_l8>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&gpio_fpc_irq_default>;
+	};
+
+	//#ifdef OPLUS_FEATURE_SECURITY_COMMON
+	oplus_secure_common {
+		compatible = "oplus,secure_common";
+		oplus,sec_reg_num = <0x1B405D8>;
+		oplus,sec_en_anti_reg = <0x1B401CC>;
+		oplus,sec_override1_reg = <0x7860C0>;
+		oplus,override1_en_value = <0x1>;
+	};
+	//#endif /*OPLUS_FEATURE_SECURITY_COMMON*/
+
+	goodix_fp {
+		status = "ok";
+		compatible = "goodix,goodix_fp";
+		interrupt-parent = <&tlmm>;
+		interrupts = <17 0>;
+		ldo-supply = <&pm6350_l8>;
+		ldo-config = <3300000 3300000 150000>;
+		goodix,gpio_irq = <&tlmm 17 0x1>;
+		goodix,gpio_reset = <&tlmm 18 0x0>;
+		//gpio-power = <&tlmm 91 0x0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&gpio_goodix_irq_default>;
+		notify_tpinfo_flag = <1>;
+		power-num = <1>;
+		power_source_1 {
+			power-mode = <1>;
+			power-name = "ldo";
+			power-config = "ldo-config";
+			delay-time = <0>;
+		};
+	};
+	//#endif /*OPLUS_FEATURE_FINGERPRINT*
+
 };
 
 &pm6150a_amoled {
@@ -323,7 +395,17 @@
 	status = "ok";
 };
 
-#include "camera/holi-camera-sensor-mtp.dtsi"
+&smb1396_slave {
+	status = "ok";
+};
+
+&smb1396_div2_cp_slave {
+	status = "ok";
+};
+
+/*#ifndef OPLUS_FEATURE_CAMERA_COMMON*/
+//#include "camera/holi-camera-sensor-mtp.dtsi"
+/*#endif OPLUS_FEATURE_CAMERA_COMMON*/
 
 &pm7250b_charger {
 	dpdm-supply = <&qusb_phy0>;
