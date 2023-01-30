@@ -1,0 +1,12 @@
+/dts-v1/;
+
+#include "dre.dtsi"
+
+/* DTB: common dtb */
+
+/ {
+	model = "Qualcomm Technologies, Inc. Holi SoC";
+	compatible = "qcom,holi";
+	qcom,board-id = <0 0>;
+	oplus,dtsi_no = <133144 133180>;
+};

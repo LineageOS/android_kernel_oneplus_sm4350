@@ -1,0 +1,217 @@
+#include <dt-bindings/clock/qcom,gcc-holi.h>
+
+&soc {
+	//#ifdef OPLUS_FEATURE_SENSOR_SMEM
+	/*enum sensor_id { OPLUS_ACCEL,OPLUS_GYRO,OPLUS_MAG,OPLUS_LIGHT,OPLUS_PROXIMITY,OPLUS_SAR,OPLUS_CT,OPLUS_BAROMETER,SENSORS_NUM};*/
+        sensor_fb: sensor_fb {
+            compatible = "oplus,sensor-feedback";
+            master-id  = <3>;
+            smem-id    = <608>;
+        };
+	oplus_sensor {
+			compatible = "oplus,sensor-devinfo";
+			als-row-coe = <110>;
+			/*enum {LSM6DSM = 0x01, BMI160 = 0x02, LSM6DS3 = 0x04, BMI260 = 0x08};*/
+			gsensor@0 {
+					sensor-name = <0x04>;//LSM6DS3
+					sensor-direction = <6>;
+					sensor-index = <0>;//source num
+					sensor-type = <0>;//OPLUS_ACCEL
+			};
+			gsensor@1 {
+					sensor-name = <0x08>;//BMI260
+					sensor-direction = <3>;
+					sensor-index = <1>;//source num
+					sensor-type = <0>;//OPLUS_ACCEL
+			};
+			/* enum {AKM0991X = 0x01, MMC5603 = 0x02, MXG4300 = 0x04};*/
+			msensor@0 {
+					sensor-name = <0x02>;//MMC5603
+					sensor-direction = <0>;
+					sensor-index = <0>;
+					sensor-type = <2>;//OPLUS_MAG
+					parameter-number= <18>;
+					soft-mag-parameter = <9980 0 573 0 229 1 1256 0 7627 0 181 0 732 0 1812 1 9636 0>;//e00 sign e01 sign...
+			};
+			/*enum {STK3A5X=0x01,TCS3701=0x02,TCS3408=0x04,STK326X=0x08,MN78911=0x10};*/
+			/*enum {NORMAL=0x01,UNDER_LCD=0x02,VIRTUAL_UNDER_LCD=0x03}*/
+			lsensor@0 {
+					sensor-name = <0x10>;//MN78911
+					sensor-index = <0>;
+					sensor-type = <3>;//OPLUS_ALS
+					bus-number = <2>;
+					irq-number = <98>;
+					als-type = <1>;//NORMAL
+					is-unit-device = <1>;
+					is-als-dri = <1>;
+					als-factor = <250>;
+					is_als_initialed = <0>;
+					als_buffer_length = <10>;
+			};
+			psensor@0 {
+					sensor-name = <0x10>;//MN78911
+					sensor-index = <0>;
+					sensor-type = <4>;//OPLUS_PROXIMITY
+					bus-number = <2>;
+					irq-number = <98>;
+					ps-cail-type = <1>;
+					ps-type = <1>;
+					is_ps_initialzed = <0>;
+					low_step = <300>;
+					high_step = <400>;
+					low_limit = <650>;
+					high_limit = <1050>;
+					dirty_low_step = <300>;
+					dirty_high_step = <400>;
+					ps_dirty_limit = <1800>;
+					ps_ir_limit = <2000>;
+					ps_adjust_min = <0>;
+					ps_adjust_max = <1850>;
+					sampling_count = <5>;
+					step_max = <400>;
+					step_min = <100>;
+					step_div = <1500>;
+					anti_shake_delta = <70>;
+					dynamic_cali_max = <5000>;
+					raw2offset_radio = <1000>;
+					offset_max = <60000>;
+					offset_range_min = <0>;// -255
+					offset_range_max = <65535>;
+					force_cali_limit = <2000>;
+					cali_jitter_limit = <20>;
+					cal_offset_margin = <3000>;
+			};
+			/*enum {LPS22HH = 0x01, BMP380 = 0x02}*/
+			bsensor@0 {
+				sensor-name = <0x01>;//LPS22HH
+				sensor-index = <0>;
+				sensor-type = <0x8>;//BAROMETER
+			};
+			sarsensor@0 {
+				sensor-name = <0x2>;//SX9324
+				sensor-index = <0>;
+				sensor-type = <5>;//OPLUS_SAR
+/*				parameter-number = <96>;
+				sensor-reg       = <0x20 0x80
+									0x28 0x39
+									0x29 0x3F
+									0x2A 0x1B
+									0x2B 0x00
+									0x24 0xAF
+									0x27 0x2F
+									0x23 0x00
+									0x26 0x00
+									0x2C 0x12
+									0x2D 0x06
+									0x30 0x13
+									0x31 0x12
+									0x34 0x0C
+									0x35 0x15
+									0x36 0x3F
+									0x37 0x4D
+									0x42 0x00
+									0x43 0x00
+									0x44 0x00
+									0x11 0x25
+									0x10 0x16
+									0x32 0x20
+									0x33 0x20
+									0x40 0x00
+									0x41 0x00
+									0x45 0x05
+									0x46 0x00
+									0x47 0x00
+									0x48 0x00
+									0x49 0x00
+									0x4A 0x44
+									0x4B 0x00
+									0x4C 0x00
+									0x4D 0x50
+									0x4E 0x9B
+									0x4F 0x0D
+									0x50 0x10
+									0x51 0x70
+									0x52 0x00
+									0x53 0x00
+									0x54 0x00
+									0x02 0x00
+									0x03 0x00
+									0x06 0x00
+									0x07 0x80
+									0x08 0x01
+									0x05 0x70>;*/
+			};
+			sarsensor@1 {
+				sensor-name = <0x1>;//SX9324 down
+				sensor-index = <0>;
+				sensor-type = <9>;//OPLUS_SAR
+/*				parameter-number = <96>;
+				sensor-reg       = <0x20 0x80
+									0x28 0x39
+									0x29 0x3F
+									0x2A 0x1B
+									0x2B 0x00
+									0x24 0xAF
+									0x27 0x2F
+									0x23 0x00
+									0x26 0x00
+									0x2C 0x12
+									0x2D 0x06
+									0x30 0x13
+									0x31 0x12
+									0x34 0x0C
+									0x35 0x15
+									0x36 0x4D
+									0x37 0x4D
+									0x42 0x00
+									0x43 0x00
+									0x44 0x00
+									0x11 0x21
+									0x10 0x16
+									0x32 0x20
+									0x33 0x20
+									0x40 0x00
+									0x41 0x00
+									0x45 0x05
+									0x46 0x00
+									0x47 0x00
+									0x48 0x00
+									0x49 0x00
+									0x4A 0x33
+									0x4B 0x00
+									0x4C 0x00
+									0x4D 0x50
+									0x4E 0x9B
+									0x4F 0x0D
+									0x50 0x10
+									0x51 0x70
+									0x52 0x00
+									0x53 0x00
+									0x54 0x00
+									0x02 0x00
+									0x03 0x00
+									0x06 0x00
+									0x07 0x80
+									0x08 0x01
+									0x05 0x74>;*/
+			};
+			/*virtual sensor
+			enum sensor_algo_id {
+					OPLUS_PICKUP_DETECT,
+					OPLUS_LUX_AOD,
+					OPLUS_TP_GESTURE,
+					OPLUS_FP_DISPLAY,
+					OPLUS_FREE_FALL,
+					OPLUS_CAMERA_PROTECT,
+					SENSOR_ALGO_NUM
+			}*/
+			pickup_detect {
+					sensor-type = <0>; //OPLUS_PICKUP_DETECT
+					is-virtual-sensor;
+					is-need-prox = <1>;
+					prox-type = <0>; // 0 - proximity; 1 - proximity_fake
+			};
+	};
+	//#endif /*OPLUS_FEATURE_SENSOR_SMEM*/
+};
+

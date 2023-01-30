@@ -1,5 +1,10 @@
 vendor := $(srctree)/$(src)
 
-ifneq "$(wildcard $(vendor)/qcom)" ""
-	subdir-y += qcom
-endif
+#ifndef VENDOR_EDIT
+#ifneq "$(wildcard $(vendor)/qcom)" ""
+#	subdir-y += qcom
+#endif
+#else
+#subdir-y += qcom
+subdir-y += dre
+#endif
