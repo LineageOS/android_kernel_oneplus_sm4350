@@ -1,0 +1,388 @@
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include "holi-oem-common-mtp.dtsi"
+//#ifdef OPLUS_FEATURE_CHG_BASIC
+#include "oplus-charge.dtsi"
+//#endif
+//#ifdef OPLUS_BUG_STABILITY
+#include "display/dre-display-mtp.dtsi"
+//#endif /*OPLUS_BUG_STABILITY*/
+
+#include "dre-holi-audio-overlay.dtsi"
+
+/* DTBO: project common generic overlay */
+/ {
+
+};
+
+&mtp_batterydata {
+	qcom,batt-id-range-pct = <15>;
+	/delete-node/ qcom,alium_860_89032_0000_3600mAh;
+	/delete-node/ qcom,ATL436186_020H_3780mAh;
+	/delete-node/ qcom,ATL466271_3300mAh;
+
+	#include "oplus_battery_5000mah_15k_pmi632_Coslight.dtsi"
+	#include "oplus_battery_5000mah_27k_pmi632_Desay.dtsi"
+};
+
+&pm7250b_charger {
+	status = "ok";
+	#io-channel-cells = <1>;
+	io-channels = <&pm7250b_vadc ADC5_USB_IN_V_16>,
+		      <&pm7250b_vadc ADC5_USB_IN_I>,
+		      <&pm7250b_vadc ADC5_CHG_TEMP>,
+		      <&pm7250b_vadc ADC5_DIE_TEMP>,
+		      <&pm7250b_vadc ADC5_AMUX_THM4_100K_PU>,
+		      <&pm7250b_vadc ADC5_AMUX_THM3_100K_PU>,
+		      <&pm7250b_vadc ADC5_SBUx>,
+		      <&pm7250b_vadc ADC5_VPH_PWR>,
+		      <&pm7250b_vadc ADC5_AMUX_THM1_100K_PU>,
+		      <&pm7250b_qg PSY_IIO_RESISTANCE_ID>,
+		      <&pm7250b_qg PSY_IIO_VOLTAGE_NOW>,
+		      <&pm7250b_qg PSY_IIO_TEMP>,
+		      <&pm7250b_qg PSY_IIO_CAPACITY>,
+		      <&pm7250b_qg PSY_IIO_VOLTAGE_OCV>,
+		      <&pm7250b_qg PSY_IIO_VOLTAGE_AVG>,
+		      <&pm7250b_qg PSY_IIO_DEBUG_BATTERY>,
+		      <&pm7250b_qg PSY_IIO_REAL_CAPACITY>,
+		      <&pm7250b_qg PSY_IIO_CC_SOC>,
+		      <&pm7250b_qg PSY_IIO_CURRENT_NOW>,
+		      <&pm7250b_qg PSY_IIO_VOLTAGE_MAX>,
+		      <&pm7250b_qg PSY_IIO_CHARGE_FULL>,
+		      <&pm7250b_qg PSY_IIO_CHARGE_COUNTER>,
+		      <&pm7250b_qg PSY_IIO_CYCLE_COUNT>,
+		      <&pm7250b_qg PSY_IIO_CHARGE_FULL_DESIGN>,
+		      <&pm7250b_qg PSY_IIO_TIME_TO_FULL_NOW>,
+		      <&bq25600_slaver PSY_IIO_CHARGER_TEMP>,
+		      <&bq25600_slaver PSY_IIO_CHARGER_TEMP_MAX>,
+		      <&bq25600_slaver PSY_IIO_SET_SHIP_MODE>,
+		      <&bq25600_slaver PSY_IIO_INPUT_SUSPEND>,
+		      <&bq25600_slaver PSY_IIO_PARALLEL_MODE>,
+		      <&bq25600_slaver PSY_IIO_PARALLEL_BATFET_MODE>,
+		      <&bq25600_slaver PSY_IIO_MIN_ICL>,
+		      <&bq25600_slaver PSY_IIO_PARALLEL_FCC_MAX>,
+		      <&bq25600_slaver PSY_IIO_CURRENT_MAX>,
+		      <&bq25600_slaver PSY_IIO_CONSTANT_CHARGE_CURRENT_MAX>,
+		      <&bq25600_slaver PSY_IIO_VOLTAGE_MAX>,
+		      <&bq25600_slaver PSY_IIO_CHARGE_TYPE>;
+
+	io-channel-names = "usb_in_voltage",
+			   "usb_in_current",
+			   "chg_temp",
+			   "die_temp",
+			   "usb_temp_l",
+			   "usb_temp_r",
+			   "sbux_res",
+			   "vph_voltage",
+			   "skin_temp",
+			   "resistance_id",
+			   "voltage_now",
+			   "temp",
+			   "capacity",
+			   "voltage_ocv",
+			   "voltage_avg",
+			   "debug_battery",
+			   "real_capacity",
+			   "cc_soc",
+			   "current_now",
+			   "voltage_max",
+			   "charge_full",
+			   "charge_counter",
+			   "cycle_count",
+			   "charge_full_design",
+			   "time_to_full_now",
+			   "pl_charger_temp",
+			   "pl_charger_temp_max",
+			   "pl_set_ship_mode",
+			   "pl_input_suspend",
+			   "pl_mode",
+			   "pl_batfet_mode",
+			   "pl_min_icl",
+			   "pl_fcc_max",
+			   "pl_current_max",
+			   "pl_constant_charge_current_max",
+			   "pl_voltage_max",
+			   "pl_charge_type";
+
+	qcom,battery-data = <&mtp_batterydata>;
+	qcom,sec-charger-config = <2>;
+	qcom,auto-recharge-soc = <98>;
+	qcom,charger-temp-max = <800>;
+	qcom,smb-temp-max = <800>;
+	qcom,suspend-input-on-debug-batt;
+	qcom,smb-internal-pull-kohm = <0>;
+	qcom,en-skin-therm-mitigation;
+	qcom,hvdcp3-standalone-config;
+	/delete-property/ qcom,step-charging-enable;
+	/delete-property/ qcom,sw-jeita-enable;
+	/delete-property/ qcom,fcc-stepping-enable;
+	/delete-property/ qcom,fcc-step-delay-ms;
+	/delete-property/ qcom,fcc-step-size-ua;
+};
+
+&pm7250b_qg {
+	status = "ok";
+	#io-channel-cells = <1>;
+	io-channels = <&pm7250b_vadc ADC5_BAT_THERM_30K_PU>,
+		      <&pm7250b_vadc ADC5_BAT_ID_100K_PU>,
+		      <&pm7250b_charger PSY_IIO_INPUT_CURRENT_LIMITED>,
+		      <&pm7250b_charger PSY_IIO_RECHARGE_SOC>,
+		      <&pm7250b_charger PSY_IIO_FORCE_RECHARGE>,
+		      <&pm7250b_charger PSY_IIO_CHARGE_DONE>,
+		      <&bq25600_slaver PSY_IIO_CHARGING_ENABLED>;
+	io-channel-names = "batt-therm",
+			   "batt-id",
+			   "input_current_limited",
+			   "recharge_soc",
+			   "force_recharge",
+			   "charge_done",
+			   "parallel_charging_enabled";
+	qcom,battery-data = <&mtp_batterydata>;
+	qcom,qg-iterm-ma = <320>;
+	qcom,hold-soc-while-full;
+	qcom,linearize-soc;
+	qcom,cl-feedback-on;
+	qcom,tcss-enable;
+	qcom,fvss-enable;
+	qcom,fvss-vbatt-mv = <3300>;
+	qcom,bass-enable;
+	//qcom,use-cp-iin-sns;
+	qcom,qg-ext-sns;
+	qcom,typical_capacity_mah = <5000>;
+};
+
+&qupv3_se10_i2c {
+	status = "ok";
+	#include "bq25600_slave.dtsi"
+};
+
+&qusb_phy0{
+	qcom,qusb-phy-init-seq =
+		/* <value reg_offset> */
+		<0x23 0x210 /* PWR_CTRL1 */
+		0x03 0x04  /* PLL_ANALOG_CONTROLS_TWO */
+		0x7c 0x18c /* PLL_CLOCK_INVERTERS */
+		0x80 0x2c  /* PLL_CMODE */
+		0x0a 0x184 /* PLL_LOCK_DELAY */
+		0x19 0xb4  /* PLL_DIGITAL_TIMERS_TWO */
+		0x40 0x194 /* PLL_BIAS_CONTROL_1 */
+		0x16 0x198 /* PLL_BIAS_CONTROL_2 */
+		0x21 0x214 /* PWR_CTRL2 */
+		0x08 0x220 /* IMP_CTRL1 */
+		0x58 0x224 /* IMP_CTRL2 */
+		0x45 0x240 /* TUNE1 */
+		0x29 0x244 /* TUNE2 */
+		0xca 0x248 /* TUNE3 */
+		0x04 0x24c /* TUNE4 */
+		0x03 0x250 /* TUNE5 */
+		0x30 0x23c /* CHG_CTRL2 */
+		0x22 0x210>; /* PWR_CTRL1 */
+
+	qcom,qusb-phy-host-init-seq =
+		/* <value reg_offset> */
+		<0x23 0x210 /* PWR_CTRL1 */
+		0x03 0x04  /* PLL_ANALOG_CONTROLS_TWO */
+		0x7c 0x18c /* PLL_CLOCK_INVERTERS */
+		0x80 0x2c  /* PLL_CMODE */
+		0x0a 0x184 /* PLL_LOCK_DELAY */
+		0x19 0xb4  /* PLL_DIGITAL_TIMERS_TWO */
+		0x40 0x194 /* PLL_BIAS_CONTROL_1 */
+		0x1c 0x198 /* PLL_BIAS_CONTROL_2 */
+		0x21 0x214 /* PWR_CTRL2 */
+		0x08 0x220 /* IMP_CTRL1 */
+		0x58 0x224 /* IMP_CTRL2 */
+		0x57 0x240 /* TUNE1 */
+		0x2b 0x244 /* TUNE2 */
+		0xca 0x248 /* TUNE3 */
+		0x04 0x24c /* TUNE4 */
+		0x03 0x250 /* TUNE5 */
+		0x30 0x23c /* CHG_CTRL2 */
+		0x22 0x210>; /* PWR_CTRL1 */
+};
+
+&pm7250b_pdphy {
+	vdd-pdphy-supply = <&L3A>;
+	vbus-supply = <&smb5_vbus>;
+	vconn-supply = <&smb5_vconn>;
+
+	#io-channel-cells = <1>;
+	io-channels = <&pm7250b_charger PSY_IIO_PD_ACTIVE>,
+		      <&pm7250b_charger PSY_IIO_TYPEC_CC_ORIENTATION>,
+		      <&pm7250b_charger PSY_IIO_CONNECTOR_TYPE>,
+		      <&pm7250b_charger PSY_IIO_TYPEC_POWER_ROLE>,
+		      <&pm7250b_charger PSY_IIO_PD_USB_SUSPEND_SUPPORTED>,
+		      <&pm7250b_charger PSY_IIO_TYPEC_SRC_RP>,
+		      <&pm7250b_charger PSY_IIO_PD_IN_HARD_RESET>,
+		      <&pm7250b_charger PSY_IIO_PD_CURRENT_MAX>,
+		      <&pm7250b_charger PSY_IIO_PR_SWAP>,
+		      <&pm7250b_charger PSY_IIO_PD_VOLTAGE_MIN>,
+		      <&pm7250b_charger PSY_IIO_PD_VOLTAGE_MAX>,
+		      <&pm7250b_charger PSY_IIO_USB_REAL_TYPE>,
+		      <&pm7250b_charger PSY_IIO_TYPEC_MODE>,
+		      <&pm7250b_charger PSY_IIO_PE_START>,
+		      <&pm7250b_charger PSY_IIO_PD_SDP>;
+	io-channel-names = "pd_active",
+			   "typec_cc_orientation",
+			   "connector_type",
+			   "typec_power_role",
+			   "pd_usb_suspend_supported",
+			   "typec_src_rp",
+			   "pd_in_hard_reset",
+			   "pr_current_max",
+			   "pr_swap",
+			   "pd_voltage_min",
+			   "pd_voltage_max",
+			   "real_type",
+			   "typec_mode",
+			   "pe_start",
+			   "pd_sdp";
+};
+
+&pm7250b_vadc {
+	/delete-property/ compatible;
+	compatible = "qcom,spmi-adc5-chg";
+	i_parallel {
+		reg = <ADC5_PARALLEL_ISENSE>;
+		label = "i_parallel";
+		qcom,pre-scaling = <1 1>;
+	};
+};
+#include "camera/dre-camera-overlay.dtsi"
+
+/*#ifdef OPLUS_FEATURE_TP_BASIC*/
+#include "dre_tp_firmware.dtsi"
+&qupv3_se0_spi {
+	status = "ok";
+
+	novatek@0 {
+		status = "ok";
+		compatible = "novatek,nf_nt36672c";
+		reg = <0>;
+		chip-num = <2>;
+		chip-name = "NF_NT36672C", "NF_NT36672C";
+
+		spi-max-frequency = <12000000>;	//4800000,9600000,15000000,19200000
+		interrupt-parent = <&tlmm>;
+		interrupts = <22 0x0>;
+		irq-gpio = <&tlmm 22 0x2002>;
+		reset-gpio = <&tlmm 21 0x00>;
+		cs-gpio = <&tlmm 3 0x00>;
+		//lcd-reset-gpio = <&tlmm 85 0x00>;
+
+		touchpanel,max-num-support = <10>;
+		touchpanel,tx-rx-num = <16 36>;
+		touchpanel,panel-coords = <1080 2400>;
+		touchpanel,display-coords = <1080 2400>;
+		touchpanel,touchmajor-limit = <0 54>;
+
+		panel_type = <7 9>;
+		platform_support_project = <133144 133180>;
+		platform_support_project_dir = <133144 133180>;
+		firmware_name = "0xFA261TN00", "0xFA261DN00";
+		platform_support_project_commandline = "nt36672c_tm", "nt36672c_dsjm";
+
+		/*pinctrl-names = "default", "suspend";
+		pinctrl-0 = <&ts_active>;
+		pinctrl-1 = <&ts_int_suspend &ts_reset_suspend>;*/
+
+		incell_screen;
+		fw_edge_limit_support;
+		black_gesture_support;
+		charger_pump_support;
+		headset_pump_support;
+		esd_handle_support;
+		black_gesture_test_support;
+		game_switch_support;
+		noflash_support;
+		lcd_trigger_load_tp_fw_support;
+		smart_gesture_support;
+		pressure_report_support;
+		fw_update_app_support;
+		//fw_update_in_probe_with_headfile;
+
+		touchpanel,button-type = <4>;
+	};
+
+	ilitek@1 {
+		status = "ok";
+		compatible = "ilitek,ili7807s";
+		reg = <1>;
+		chip-num = <1>;
+		chip-name = "NF_ILI7807S";
+
+		spi-max-frequency = <12000000>;	//4800000,9600000,15000000,19200000
+		interrupt-parent = <&tlmm>;
+		interrupts = <22 0x0>;
+		irq-gpio = <&tlmm 22 0x2002>;
+		reset-gpio = <&tlmm 21 0x00>;
+		cs-gpio = <&tlmm 3 0x00>;
+		//lcd-reset-gpio = <&tlmm 85 0x00>;
+
+		touchpanel,max-num-support = <10>;
+		touchpanel,tx-rx-num = <16 36>;
+		touchpanel,panel-coords = <1080 2400>;
+		touchpanel,display-coords = <1080 2400>;
+		touchpanel,touchmajor-limit = <0 54>;
+
+		panel_type = <7>;
+		platform_support_project = <133144 133180>;
+		platform_support_project_dir = <133144 133180>;
+		firmware_name = "0xFA261TI00";
+		platform_support_project_commandline = "ili7807s_tm";
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&ili_ts_default &ili_ts_reset>;
+
+		incell_screen;
+		fw_edge_limit_support;
+		black_gesture_support;
+		charger_pump_support;
+		headset_pump_support;
+		esd_handle_support;
+		black_gesture_test_support;
+		game_switch_support;
+		noflash_support;
+		lcd_trigger_load_tp_fw_support;
+		smart_gesture_support;
+		pressure_report_support;
+		fw_update_app_support;
+		//fw_update_in_probe_with_headfile;
+
+		touchpanel,button-type = <4>;
+	};
+};
+/*#endif OPLUS_FEATURE_TP_BASIC*/
+
+//#ifdef OPLUS_FEATURE_RF_CALBLE
+&tlmm {
+	rf_con_test_ant7_active: rf_con_test_ant7_active {
+        mux {
+            pins = "gpio24";
+            function = "gpio";
+        };
+        config {
+            pins = "gpio24";
+            drive-strength = <2>;
+            bias-pull-up;
+        };
+    };
+};
+
+&soc {
+	oem_rf_cable:oem_rf_cable{
+		compatible = "oem,rf_cable";
+		interrupt-parent = <&tlmm>;
+		rf,cable-gpio-0 = <&tlmm 24 0>;
+        /*rf,cable-gpio-0 = <&tlmm 165 0>;
+		rf,cable-gpio-1 = <&tlmm 27 0>;
+		rf,cable-gpio-2 = <&tlmm 92 0>;
+		rf,cable-gpio-3 = <&tlmm 44 0>;
+		rf,cable-gpio-4 = <&tlmm 155 0>;*/
+		rf,cable-support-timer = <0>;
+        rf,cable-gpio-num = <1>;
+		oem,rf_uevent_feature_enable;
+		pinctrl-names = "oem_rf_cable_active";
+		//pinctrl-0= <&rf_cable_ant0_active &rf_cable_ant1_active &rf_cable_ant2_active&rf_cable_ant3_active &rf_cable_ant7_active>;
+        pinctrl-0= <&rf_con_test_ant7_active>;
+	};
+};
+//#endif /*OPLUS_FEATURE_RF_CALBLE*/

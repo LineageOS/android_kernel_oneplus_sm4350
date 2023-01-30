@@ -1,0 +1,150 @@
+/****modify voltage for pm8008*****/
+&L1P {
+	regulator-min-microvolt = <528000>;
+	regulator-max-microvolt = <1240000>;
+	qcom,min-dropout-voltage = <120000>;
+};
+
+&L2P {
+	regulator-min-microvolt = <528000>;
+	regulator-max-microvolt = <1240000>;
+	qcom,min-dropout-voltage = <120000>;
+};
+
+&L3P {
+	regulator-min-microvolt = <1500000>;
+	regulator-max-microvolt = <3400000>;
+	qcom,min-dropout-voltage = <200000>;
+};
+
+&L4P {
+	regulator-min-microvolt = <1500000>;
+	regulator-max-microvolt = <3400000>;
+	qcom,min-dropout-voltage = <200000>;
+};
+
+&L5P {
+	regulator-min-microvolt = <1500000>;
+	regulator-max-microvolt = <3400000>;
+	qcom,min-dropout-voltage = <300000>;
+};
+
+&L6P {
+	regulator-min-microvolt = <1500000>;
+	regulator-max-microvolt = <3400000>;
+	qcom,min-dropout-voltage = <300000>;
+};
+
+&L7P {
+	regulator-min-microvolt = <1500000>;
+	regulator-max-microvolt = <3400000>;
+	qcom,min-dropout-voltage = <300000>;
+};
+/****modify voltage for pm8008*****/
+
+/**disable cci3 to avoid gpio conflict**/
+&tlmm {
+	/delete-node/ cci3_active;
+	/delete-node/ cci3_suspend;
+};
+
+/*&cci3_active {
+	status = "disabled";
+};
+
+&cci3_suspend {
+	status = "disabled";
+};*/
+
+&cam_cci1 {
+	pinctrl-0 = <&cci2_active>;
+	pinctrl-1 = <&cci2_suspend>;
+	gpios = <&tlmm 43 0>,
+			<&tlmm 44 0>;
+	gpio-req-tbl-num = <0 1>;
+	gpio-req-tbl-flags = <1 1>;
+	gpio-req-tbl-label = "CCI_I2C_DATA2",
+			"CCI_I2C_CLK2";
+};
+/**disable cci3 to avoid gpio conflict**/
+
+/********************modify mclk current value********************/
+&cam_sensor_mclk0_active{
+	config {
+		pins = "gpio29";
+		bias-disable; /* No PULL */
+		drive-strength = <6>; /* 6 MA */
+	};
+};
+
+&cam_sensor_mclk0_suspend{
+	config {
+		pins = "gpio29";
+		bias-pull-down; /* PULL DOWN */
+		drive-strength = <6>; /* 6 MA */
+	};
+};
+
+&cam_sensor_mclk1_active{
+	config {
+		pins = "gpio30";
+		bias-disable; /* No PULL */
+		drive-strength = <6>; /* 6 MA */
+	};
+};
+
+&cam_sensor_mclk1_suspend{
+	config {
+		pins = "gpio30";
+		bias-pull-down; /* PULL DOWN */
+		drive-strength = <6>; /* 6 MA */
+	};
+};
+
+&cam_sensor_mclk3_active{
+	config {
+		pins = "gpio32";
+		bias-disable; /* No PULL */
+		drive-strength = <6>; /* 6 MA */
+	};
+};
+
+&cam_sensor_mclk3_suspend{
+	config {
+		pins = "gpio32";
+		bias-pull-down; /* PULL DOWN */
+		drive-strength = <6>; /* 6 MA */
+	};
+};
+
+&cam_sensor_mclk4_active{
+	config {
+		pins = "gpio33";
+		bias-disable; /* No PULL */
+		drive-strength = <6>; /* 6 MA */
+	};
+};
+
+&cam_sensor_mclk4_suspend{
+	config {
+		pins = "gpio33";
+		bias-pull-down; /* PULL DOWN */
+		drive-strength = <6>; /* 6 MA */
+	};
+};
+
+&cam_sensor_mclk2_active{
+	config {
+		pins = "gpio31";
+		bias-disable; /* No PULL */
+		drive-strength = <6>; /* 6 MA */
+	};
+};
+
+&cam_sensor_mclk2_suspend{
+	config {
+		pins = "gpio31";
+		bias-pull-down; /* PULL DOWN */
+		drive-strength = <6>; /* 6 MA */
+	};
+};

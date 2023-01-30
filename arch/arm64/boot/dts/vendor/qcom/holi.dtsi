@@ -258,7 +258,11 @@
 		compatible = "android,firmware";
 		vbmeta {
 			compatible = "android,vbmeta";
-			parts = "vbmeta,boot,system,vendor,dtbo";
+			//#ifdef OPLUS_FEATURE_BOOT_SECURITY
+			parts = "vbmeta,boot,system,vendor,dtbo,vendor_boot";
+			//#else
+			//parts = "vbmeta,boot,system,vendor,dtbo";
+			//#endif
 		};
 
 		fstab {
@@ -322,32 +326,32 @@
 
 	pil_adsp_mem: adsp@86700000 {
 		no-map;
-		reg = <0x0 0x86700000 0x0 0x2000000>;
+		reg = <0x0 0x86700000 0x0 0x2800000>;
 	};
 
-	pil_cdsp_mem: cdsp@88700000 {
+	pil_cdsp_mem: cdsp@88f00000 {
 		no-map;
-		reg = <0x0 0x88700000 0x0 0x1e00000>;
+		reg = <0x0 0x88f00000 0x0 0x1e00000>;
 	};
 
-	pil_video_mem: video@8a500000 {
+	pil_video_mem: video@8b200000 {
 		no-map;
-		reg = <0x0 0x8a500000 0x0 0x500000>;
+		reg = <0x0 0x8b200000 0x0 0x500000>;
 	};
 
-	pil_ipa_fw_mem: ipa_fw@8aa00000 {
+	pil_ipa_fw_mem: ipa_fw@8b700000 {
 		no-map;
-		reg = <0x0 0x8aa00000 0x0 0x10000>;
+		reg = <0x0 0x8b700000 0x0 0x10000>;
 	};
 
-	pil_ipa_gsi_mem: ipa_gsi@8aa10000 {
+	pil_ipa_gsi_mem: ipa_gsi@8b710000 {
 		no-map;
-		reg = <0x0 0x8aa10000 0x0 0xa000>;
+		reg = <0x0 0x8b710000 0x0 0xa000>;
 	};
 
-	pil_gpu_micro_code_mem: gpu_micro_code@8aa1a000 {
+	pil_gpu_micro_code_mem: gpu_micro_code@8b71a000 {
 		no-map;
-		reg = <0x0 0x8aa1a000 0x0 0x2000>;
+		reg = <0x0 0x8b71a000 0x0 0x2000>;
 	};
 
 	pil_mpss_wlan_mem: mpss_wlan@8b800000 {

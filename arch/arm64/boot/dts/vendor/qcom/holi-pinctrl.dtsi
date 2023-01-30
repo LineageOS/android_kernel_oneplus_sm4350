@@ -361,6 +361,53 @@
 			};
 		};
 
+		//#ifdef OPLUS_FEATURE_FINGERPRINT
+		oplus_fp_common {
+			gpio_id2_default: gpio_id2_default {
+				mux {
+					pins = "gpio";
+					function = "gpio53";
+				};
+				config {
+					pins = "gpio53";
+					drive-strength = <2>;
+					bias-pull-up;
+					input-enable;
+				};
+			};
+		};
+
+		fpc_fpc1020 {
+			gpio_fpc_irq_default: gpio_fpc_irq_default {
+				mux {
+					pins = "gpio17";
+					function = "gpio";
+				};
+				config {
+					pins = "gpio17";
+					drive-strength = <2>;
+					bias-pull-up;
+					input-enable;
+				};
+			};
+		};
+
+		goodix_fp {
+			gpio_goodix_irq_default: gpio_goodix_irq_default {
+				mux {
+					pins = "gpio17";
+					function = "gpio";
+				};
+				config {
+					pins = "gpio17";
+					drive-strength = <2>;
+					bias-disable;
+					input-enable;
+				};
+			};
+		};
+		//#endif /*OPLUS_FEATURE_FINGERPRINT*/
+
 		qupv3_se8_i2c_pins: qupv3_se8_i2c_pins {
 			qupv3_se8_i2c_active: qupv3_se8_i2c_active {
 				mux {
@@ -674,7 +721,8 @@
 				config {
 					pins = "gpio21", "gpio22";
 					drive-strength = <8>;
-					bias-pull-up;
+					//bias-pull-up;
+					bias-disable;
 				};
 			};
 		};
