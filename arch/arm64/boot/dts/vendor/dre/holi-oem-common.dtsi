@@ -7,7 +7,7 @@
 
 // xbl_uefi_mem address get from boot_images Core.fdf file: PcdEmbeddedFdBaseAddress + SERIAL_BUFFER_OFFSET,0x9FC00000+0x3F7000=0x9FFF7000
 // kernel boot log: 0x9FE00000~ 0x9FFF7000
-/ {
+/* {
     reserved-memory {
 		kboot_uboot_logmem: kboot_uboot_logmem@0x9FE00000 {
 			reg = <0x0 0x9FE00000 0x0 0x200000>;
@@ -30,7 +30,7 @@
             mem-type = <2>;
         };
     };
-};
+};*/
 
 &spmi_bus {
 	qcom,pm6350@0 {
