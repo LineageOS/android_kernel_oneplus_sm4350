@@ -2670,9 +2670,9 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
-#ifndef OPLUS_FEATURE_CHG_BASIC
+//#ifndef OPLUS_FEATURE_CHG_BASIC
 		rc = smblib_get_prop_batt_status(chg, pval);
-#else
+/*#else
 		if (oplus_chg_show_vooc_logo_ornot() == 1) {
 			if(g_oplus_chip->new_ui_warning_support
 				&& (g_oplus_chip->tbatt_status == BATTERY_STATUS__WARM_TEMP && g_oplus_chip->batt_full))
@@ -2684,7 +2684,7 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 		} else {
 			pval->intval = g_oplus_chip->prop_status;
 		}
-#endif
+#endif*/
 		break;
 	case POWER_SUPPLY_PROP_HEALTH:
 #ifndef OPLUS_FEATURE_CHG_BASIC
