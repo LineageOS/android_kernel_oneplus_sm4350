@@ -975,7 +975,7 @@ static void oplus_get_usb_temp(struct oplus_chg_chip *chg)
 
 	chg->usb_temp_r = con_temp_855[i];
 
-	chg_err("usb_temp_l:%d, usb_temp_r:%d\n",chg->usb_temp_l, chg->usb_temp_r);
+	//chg_err("usb_temp_l:%d, usb_temp_r:%d\n",chg->usb_temp_l, chg->usb_temp_r);
 }
 
 static int oplus_dischg_gpio_init(struct oplus_chg_chip *chip)
