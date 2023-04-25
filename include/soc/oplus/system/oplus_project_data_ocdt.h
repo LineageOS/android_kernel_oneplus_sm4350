@@ -118,6 +118,7 @@ enum OPLUS_ENG_VERSION {
     ALL_NET_CT_FIELD        = 0x0A,
     HIGH_TEMP_AGING         = 0x0B,
 	FACTORY					= 0x0C,
+    PTCRB                   = 0x0E,
 };
 
 typedef  struct
