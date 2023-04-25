@@ -16,6 +16,12 @@ config OPLUS_SM4350R_CHARGER
 	help
 	  Enables support for the oplus charging framework
 
+config OPLUS_SM6375R_CHARGER
+	bool "OPLUS SM6375 charger driver"
+	default n
+	help
+	  Enables support for the oplus charging framework
+
 config OPLUS_SHORT_C_BATT_CHECK
 	bool "OPLUS_SHORT_C_BATT CHECK SUPPORT"
 	default n
@@ -77,4 +83,5 @@ config OPLUS_BQ25601D_SLAVE_CHARGER
 	  A charger status change triggers an IRQ via the device STAT pin.
 
 source "drivers/power/oplus/Kconfig"
+source "drivers/power/oplus_chg/Kconfig"
 #endif
