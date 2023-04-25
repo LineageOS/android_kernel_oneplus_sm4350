@@ -17,3 +17,4 @@ oplus_bsp_tp_notify-y += touchpanel_notify/touchpanel_event_notify.o
 obj-$(CONFIG_TOUCHPANEL_NOTIFY) += oplus_bsp_tp_notify.o
 obj-$(CONFIG_TOUCHPANEL_NOVA) += Novatek/
 obj-$(CONFIG_TOUCHPANEL_ILITEK) += ilitek/
+obj-$(CONFIG_TOUCHPANEL_FOCAL) += Focal/

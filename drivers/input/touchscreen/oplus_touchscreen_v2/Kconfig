@@ -99,3 +99,7 @@ endif
 if TOUCHPANEL_ILITEK
 source "drivers/input/touchscreen/oplus_touchscreen_v2/ilitek/Kconfig"
 endif
+
+if TOUCHPANEL_GOODIX
+source "drivers/input/touchscreen/oplus_touchscreen_v2/Goodix/Kconfig"
+endif

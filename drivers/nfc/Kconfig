@@ -63,6 +63,7 @@ endmenu
 
 source "drivers/nfc/st21nfc/Kconfig"
 source "drivers/nfc/oplus_nfc/Kconfig"
+source "drivers/nfc/pn553-i2c/Kconfig"
 
 config NFC_QTI_I2C
 	tristate "QTI NCI based NFC I2C Slave Driver for SNxxx"
