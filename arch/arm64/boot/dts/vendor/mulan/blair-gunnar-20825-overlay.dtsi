@@ -1,0 +1,9 @@
+// Gerry.ding@BSP add for Gunnar unique charge config
+#include "charge/oplus_charge_gunnar.dtsi"
+
+&qupv3_se10_i2c {
+
+        aw2023@45 {
+                status = "disabled";
+        };
+};

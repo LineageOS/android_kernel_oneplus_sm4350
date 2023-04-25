@@ -7,4 +7,5 @@ vendor := $(srctree)/$(src)
 #else
 #subdir-y += qcom
 subdir-y += dre
+subdir-y += mulan
 #endif

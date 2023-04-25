@@ -1,0 +1,16 @@
+/dts-v1/;
+/plugin/;
+
+#include "blair-mulan-overlay-common.dtsi"
+#include "blair-mulan-21295-overlay.dtsi"
+#include "sensor/mulan-21295-sensor-qrd.dtsi"
+
+/ {
+	model = "Qualcomm Technologies, Inc. Blair QRD NOPMI";
+	compatible = "qcom,blair-qrd", "qcom,blair", "qcom,qrd";
+	qcom,msm-id = <507 0x10000>;
+	qcom,board-id = <0x1000B 0>;
+	oplus,dtsi_no = <21295>;
+};
+
+#include "camera/blair-21295-camera-sensor-mtp.dtsi"

@@ -1,0 +1,17 @@
+/dts-v1/;
+/plugin/;
+
+#include "blair-mulan-overlay-common.dtsi"
+#include "blair-gunnar-20826-overlay.dtsi"
+#include "sensor/gunnar-20826-sensor-qrd.dtsi"
+#include "nfc/mulan-21296-nfc-pn557.dtsi"
+
+/ {
+	model = "Qualcomm Technologies, Inc. Blair QRD NOPMI";
+	compatible = "qcom,blair-qrd", "qcom,blair", "qcom,qrd";
+	qcom,msm-id = <507 0x10000>;
+	qcom,board-id = <0x1000B 0>;
+	oplus,dtsi_no = <20826>;
+};
+
+#include "camera/blair-21295-camera-sensor-mtp.dtsi"

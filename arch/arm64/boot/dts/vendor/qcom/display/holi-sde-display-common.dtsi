@@ -13,7 +13,11 @@
 #include "dsi-panel-nt36672e-fhd-plus-120-video.dtsi"
 #include "dsi-panel-nt36672e-fhd-plus-144-video.dtsi"
 #include "dsi-panel-nt36672e-fhd-plus-60hz-video.dtsi"
+#include "dsi-panel-oplus21221samsung-ams643ye01-1080-2400.dtsi"
+#include "dsi-panel-oplus20159-s643xy05-samsung-fhd-video.dtsi"
+#include "dsi-panel-oplus20159-s643xy05-samsung-fhd-video-ft3518.dtsi"
 #include <dt-bindings/clock/mdss-10nm-pll-clk.h>
+#include "dsi-panel-oplus21291samsung-ams643ye01-1080-2400.dtsi"
 
 &soc {
 	dsi_panel_pwr_supply: dsi_panel_pwr_supply {
