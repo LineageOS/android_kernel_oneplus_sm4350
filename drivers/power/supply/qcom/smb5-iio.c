@@ -267,7 +267,7 @@ int smb5_iio_get_prop(struct smb_charger *chg, int channel, int *val)
 	case PSY_IIO_TYPEC_ACCESSORY_MODE:
 		rc = smblib_get_usb_prop_typec_accessory_mode(chg, val);
 		break;
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	case PSY_IIO_PD_SDP:
 		*val = chg->pd_sdp;
 		break;
@@ -501,7 +501,7 @@ int smb5_iio_set_prop(struct smb_charger *chg, int channel, int val)
 	case PSY_IIO_FCC_STEPPER_ENABLE:
 		chg->fcc_stepper_enable = val;
 		break;
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	case PSY_IIO_PD_SDP:
 		pr_err("PSY_IIO_PD_SDP: %d \n", val);
 		chg->pd_sdp = val;

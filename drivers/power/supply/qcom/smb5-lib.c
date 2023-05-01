@@ -24,7 +24,7 @@
 #include "smb5-iio.h"
 #include "battery-profile-loader.h"
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 #include <linux/gpio.h>
 #include <linux/of_gpio.h>
 #include <linux/iio/consumer.h>
@@ -622,7 +622,7 @@ static const struct apsd_result smblib_apsd_results[] = {
 	[FLOAT] = {
 		.name	= "FLOAT",
 		.bit	= FLOAT_CHARGER_BIT,
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 		.val    = POWER_SUPPLY_TYPE_USB_DCP
 #else
 		.val	= QTI_POWER_SUPPLY_TYPE_USB_FLOAT
@@ -671,7 +671,7 @@ static const struct apsd_result *smblib_get_apsd_result(struct smb_charger *chg)
 
 	if (apsd_stat & QC_CHARGER_BIT) {
 		/* since its a qc_charger, either return HVDCP3 or HVDCP2 */
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 		if (result != &smblib_apsd_results[HVDCP3])
 			result = &smblib_apsd_results[HVDCP2];
 #else
@@ -824,14 +824,14 @@ int smblib_set_charge_param(struct smb_charger *chg,
 	return rc;
 }
 
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 static int smblib_set_usb_suspend(struct smb_charger *chg, bool suspend)
 #else
 int smblib_set_usb_suspend(struct smb_charger *chg, bool suspend)
 #endif
 {
 	int rc = 0;
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	int boot_mode = get_boot_mode();
 
 	if ((boot_mode == MSM_BOOT_MODE__RF || boot_mode == MSM_BOOT_MODE__WLAN) && suspend == false) {
@@ -1219,7 +1219,7 @@ void smblib_hvdcp_detect_enable(struct smb_charger *chg, bool enable)
 	int rc;
 	u8 mask;
 
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 	mask = HVDCP_AUTH_ALG_EN_CFG_BIT | HVDCP_EN_BIT;
 #else
 	mask = HVDCP_EN_BIT;
@@ -1339,7 +1339,7 @@ static const struct apsd_result *smblib_update_usb_type(struct smb_charger *chg)
 
 	/* if PD is active, APSD is disabled so won't have a valid result */
 	if (chg->pd_active) {
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 		smblib_err(chg, "!!!smblib_update_usb_type: APSD=%s PD=%d\n", apsd_result->name, chg->pd_active);
 #endif
 		chg->real_charger_type = POWER_SUPPLY_TYPE_USB_PD;
@@ -1350,7 +1350,7 @@ static const struct apsd_result *smblib_update_usb_type(struct smb_charger *chg)
 		 * Update real charger type only if its not FLOAT
 		 * detected as as SDP
 		 */
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 		if (!(apsd_result->val == QTI_POWER_SUPPLY_TYPE_USB_FLOAT &&
 			chg->real_charger_type == POWER_SUPPLY_TYPE_USB))
 			chg->real_charger_type = apsd_result->val;
@@ -1374,7 +1374,7 @@ static const struct apsd_result *smblib_update_usb_type(struct smb_charger *chg)
 	return apsd_result;
 }
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 int opchg_get_charger_type(void)
 {
 	u8 apsd_stat;
@@ -1619,7 +1619,7 @@ void smblib_config_charger_on_debug_battery(struct smb_charger *chg)
 
 int smblib_rerun_apsd_if_required(struct smb_charger *chg)
 {
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	const struct apsd_result *apsd_result;
 #endif
 	union power_supply_propval val;
@@ -1634,7 +1634,7 @@ int smblib_rerun_apsd_if_required(struct smb_charger *chg)
 	if (!val.intval)
 		return 0;
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	apsd_result = smblib_get_apsd_result(chg);
 	if ((apsd_result->val != POWER_SUPPLY_TYPE_UNKNOWN)
 		&& (apsd_result->val != POWER_SUPPLY_TYPE_USB)
@@ -1693,7 +1693,7 @@ static int set_sdp_current(struct smb_charger *chg, int icl_ua)
 		return -EINVAL;
 	}
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	if (icl_ua <= USBIN_150MA)
 		icl_options = 0;
 	else
@@ -1738,7 +1738,7 @@ int smblib_set_icl_current(struct smb_charger *chg, int icl_ua)
 	/* suspend if 25mA or less is requested */
 	bool suspend = (icl_ua <= USBIN_25MA);
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	int boot_mode = get_boot_mode();
 	if (boot_mode == MSM_BOOT_MODE__RF || boot_mode == MSM_BOOT_MODE__WLAN) {
 		icl_ua = 0;
@@ -1751,7 +1751,7 @@ int smblib_set_icl_current(struct smb_charger *chg, int icl_ua)
 					TORCH_BUCK_MODE);
 
 
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 	/* Do not configure ICL from SW for DAM cables */
 	if (smblib_get_prop_typec_mode(chg) ==
 			    QTI_POWER_SUPPLY_TYPEC_SINK_DEBUG_ACCESSORY)
@@ -1810,7 +1810,7 @@ unsuspend:
 		goto out;
 	}
 
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 	/* Re-run AICL */
 	if (icl_override != SW_OVERRIDE_HC_MODE)
 		rc = smblib_run_aicl(chg, RERUN_AICL);
@@ -2216,13 +2216,13 @@ int smblib_vbus_regulator_enable(struct regulator_dev *rdev)
 {
 	struct smb_charger *chg = rdev_get_drvdata(rdev);
 	int rc;
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	struct oplus_chg_chip *chip = g_oplus_chip;
 #endif
 
 	smblib_dbg(chg, PR_OTG, "enabling OTG\n");
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	if(chip->vbatt_num == 2) {
 		rc = chip->chg_ops->otg_enable();
 	} else {
@@ -2243,13 +2243,13 @@ int smblib_vbus_regulator_disable(struct regulator_dev *rdev)
 {
 	struct smb_charger *chg = rdev_get_drvdata(rdev);
 	int rc;
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	struct oplus_chg_chip *chip = g_oplus_chip;
 #endif
 
 	smblib_dbg(chg, PR_OTG, "disabling OTG\n");
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	if(chip->vbatt_num == 2) {
 		rc = chip->chg_ops->otg_enable();
 	} else {
@@ -3120,7 +3120,7 @@ int smblib_disable_hw_jeita(struct smb_charger *chg, bool disable)
 	mask = JEITA_EN_COLD_SL_FCV_BIT
 		| JEITA_EN_HOT_SL_FCV_BIT
 		| JEITA_EN_HOT_SL_CCC_BIT
-//#ifndef OPLUS_FEATURE_CHG_BASIC
+//#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 	//	| JEITA_EN_COLD_SL_CCC_BIT,
 //#else
 		| JEITA_EN_COLD_SL_CCC_BIT
@@ -3669,7 +3669,7 @@ int smblib_get_prop_usb_present(struct smb_charger *chg,
 	return 0;
 }
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 /*  when set USBIN_SUSPEND_BIT, use present instead of online */
 static bool usb_online_status = false;
 #endif
@@ -3679,7 +3679,7 @@ int smblib_get_prop_usb_online(struct smb_charger *chg,
 	int rc = 0;
 	u8 stat;
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	if (usb_online_status == true) {
 		rc = smblib_read(chg, USBIN_BASE + INT_RT_STS_OFFSET, &stat);
 		if (rc < 0) {
@@ -3694,7 +3694,7 @@ int smblib_get_prop_usb_online(struct smb_charger *chg,
 
 	if (get_client_vote_locked(chg->usb_icl_votable, USER_VOTER) == 0) {
 		val->intval = false;
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 		smblib_err(chg, "smblib_get_prop_usb_online false\n");
 #endif
 		return rc;
@@ -3763,7 +3763,7 @@ int smblib_get_prop_usb_voltage_max_design(struct smb_charger *chg,
 		if (chg->chg_param.smb_version == PMI632)
 			val->intval = MICRO_9V;
 		else
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 			val->intval = MICRO_12V;
 #else
 			val->intval = MICRO_9V;
@@ -3796,7 +3796,7 @@ int smblib_get_prop_usb_voltage_max(struct smb_charger *chg,
 		if (chg->chg_param.smb_version == PMI632)
 			val->intval = MICRO_9V;
 		else
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 			val->intval = MICRO_12V;
 #else
 			val->intval = MICRO_9V;
@@ -4005,7 +4005,7 @@ static bool smblib_rsbux_low(struct smb_charger *chg, int r_thr)
 		goto cleanup;
 	}
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	msleep(5);
 #endif
 
@@ -4027,7 +4027,7 @@ static bool smblib_rsbux_low(struct smb_charger *chg, int r_thr)
 		goto cleanup;
 	}
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	msleep(5);
 #endif
 
@@ -4132,7 +4132,7 @@ static int smblib_get_prop_ufp_mode(struct smb_charger *chg)
 	}
 	smblib_dbg(chg, PR_REGISTER, "TYPE_C_STATUS_1 = 0x%02x\n", stat);
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	/* config 0x154A to 0x17 */
 	if (stat & (SNK_DAM_500MA_BIT | SNK_DAM_1500MA_BIT | SNK_DAM_3000MA_BIT)) {
 		smblib_masked_write(chg, DEBUG_ACCESS_SNK_CFG_REG, DEBUG_ACCESS_SNK_MASK, 0x17);
@@ -4140,23 +4140,23 @@ static int smblib_get_prop_ufp_mode(struct smb_charger *chg)
 #endif
 	switch (stat & DETECTED_SRC_TYPE_MASK) {
 	case SNK_RP_STD_BIT:
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	case SNK_DAM_500MA_BIT:
 #endif
 		return QTI_POWER_SUPPLY_TYPEC_SOURCE_DEFAULT;
 	case SNK_RP_1P5_BIT:
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	case SNK_DAM_1500MA_BIT:
 #endif
 		return QTI_POWER_SUPPLY_TYPEC_SOURCE_MEDIUM;
 	case SNK_RP_3P0_BIT:
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	case SNK_DAM_3000MA_BIT:
 #endif
 		return QTI_POWER_SUPPLY_TYPEC_SOURCE_HIGH;
 	case SNK_RP_SHORT_BIT:
 		return QTI_POWER_SUPPLY_TYPEC_NON_COMPLIANT;
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 	case SNK_DAM_500MA_BIT:
 	case SNK_DAM_1500MA_BIT:
 	case SNK_DAM_3000MA_BIT:
@@ -4910,7 +4910,7 @@ int smblib_set_prop_typec_power_role(struct smb_charger *chg, int val)
 	u8 power_role;
 	enum power_supply_typec_mode typec_mode;
 	bool snk_attached = false, src_attached = false, is_pr_lock = false;
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	u8 stat = 0;
 	int level = 0;
 	struct oplus_chg_chip *chip = g_oplus_chip;
@@ -4971,7 +4971,7 @@ int smblib_set_prop_typec_power_role(struct smb_charger *chg, int val)
 		power_role = TYPEC_DISABLE_CMD_BIT;
 		break;
 	case QTI_POWER_SUPPLY_TYPEC_PR_DUAL:
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 		power_role = chg->typec_try_mode;
 #else
 		if (g_oplus_chip->otg_switch) {
@@ -4993,7 +4993,7 @@ int smblib_set_prop_typec_power_role(struct smb_charger *chg, int val)
 		goto unlock;
 	}
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	if(chg->support_ccdetect && oplus_ccdetect_check_is_gpio(chip) == true) {
 		rc = smblib_read(chg, TYPE_C_STATE_MACHINE_STATUS_REG, &stat);
 		if (rc < 0) {
@@ -5174,7 +5174,7 @@ int smblib_set_prop_pd_active(struct smb_charger *chg,
 			!!chg->pd_active ? FORCE_5V : FORCE_NULL);
 	smblib_update_usb_type(chg);
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	if (chg->pd_active) {
 		u8 stat;
 
@@ -5994,7 +5994,7 @@ static void smblib_usb_plugin_hard_reset_locked(struct smb_charger *chg)
 		if (chg->fcc_stepper_enable)
 			vote(chg->fcc_votable, FCC_STEPPER_VOTER, false, 0);
 	} else {
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 		oplus_vooc_reset_fastchg_after_usbout();
 		if (oplus_vooc_get_fastchg_started() == false && g_oplus_chip) {
 			//smbchg_set_chargerid_switch_val(0);
@@ -6025,7 +6025,7 @@ static void smblib_usb_plugin_hard_reset_locked(struct smb_charger *chg)
 			vote(chg->fcc_votable, FCC_STEPPER_VOTER,
 							true, 1500000);
 	}
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	if (vbus_rising) {
 		cancel_delayed_work_sync(&chg->chg_monitor_work);
 		schedule_delayed_work(&chg->chg_monitor_work, OPLUS_CHG_MONITOR_INTERVAL);
@@ -6066,13 +6066,13 @@ static void smblib_usb_plugin_locked(struct smb_charger *chg)
 	smblib_set_opt_switcher_freq(chg, vbus_rising ? chg->chg_freq.freq_5V :
 						chg->chg_freq.freq_removal);
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	smblib_dbg(chg, PR_INTERRUPT, "!!!!! smblib_usb_plugin_locked: [%d]\n", vbus_rising);
 	oplus_chg_check_break(vbus_rising);
 #endif
 
 	if (vbus_rising) {
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 		if (smblib_get_prop_dfp_mode(chg) != QTI_POWER_SUPPLY_TYPEC_NONE) {
 			chg->fake_usb_insertion = true;
 			return;
@@ -6094,13 +6094,13 @@ static void smblib_usb_plugin_locked(struct smb_charger *chg)
 		if (chg->fcc_stepper_enable)
 			vote(chg->fcc_votable, FCC_STEPPER_VOTER, false, 0);
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 		schedule_delayed_work(&chg->typec_disable_cmd_work, msecs_to_jiffies(500));
 #endif
 
 		/* Schedule work to enable parallel charger */
 		vote(chg->awake_votable, PL_DELAY_VOTER, true, 0);
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 		schedule_delayed_work(&chg->pl_enable_work,
 					msecs_to_jiffies(PL_DELAY_MS));
 #else
@@ -6113,7 +6113,7 @@ static void smblib_usb_plugin_locked(struct smb_charger *chg)
 		vote(chg->fcc_votable, PL_DELAY_VOTER, true, 2500000);
 #endif
 	} else {
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 		if (chg->fake_usb_insertion) {
 			chg->fake_usb_insertion = false;
 			return;
@@ -6194,7 +6194,7 @@ static void smblib_usb_plugin_locked(struct smb_charger *chg)
 	if (chg->connector_type == QTI_POWER_SUPPLY_CONNECTOR_MICRO_USB)
 		smblib_micro_usb_plugin(chg, vbus_rising);
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	if (vbus_rising) {
 		cancel_delayed_work_sync(&chg->chg_monitor_work);
 		schedule_delayed_work(&chg->chg_monitor_work, OPLUS_CHG_MONITOR_INTERVAL);
@@ -6412,7 +6412,7 @@ static void smblib_handle_apsd_done(struct smb_charger *chg, bool rising)
 
 	apsd_result = smblib_update_usb_type(chg);
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	smblib_dbg(chg, PR_INTERRUPT, "%s: !!!fg_oplus_set_input_current[%d]\n", __func__, fg_oplus_set_input_current);
 	if(fg_oplus_set_input_current == false){
 		vote(chg->usb_icl_votable, USB_PSY_VOTER, true, 500000);
@@ -6445,7 +6445,7 @@ irqreturn_t smb5_usb_source_change_irq_handler(int irq, void *data)
 	struct smb_charger *chg = irq_data->parent_data;
 	int rc = 0;
 	u8 stat;
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	u8 reg_value = 0;
 
 	if (chg->fake_usb_insertion)
@@ -6463,7 +6463,7 @@ irqreturn_t smb5_usb_source_change_irq_handler(int irq, void *data)
 	}
 	smblib_dbg(chg, PR_INTERRUPT, "APSD_STATUS = 0x%02x\n", stat);
 
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 	if ((chg->connector_type == QTI_POWER_SUPPLY_CONNECTOR_MICRO_USB)
 		&& (stat & APSD_DTC_STATUS_DONE_BIT)
 		&& !chg->uusb_apsd_rerun_done) {
@@ -6474,7 +6474,7 @@ irqreturn_t smb5_usb_source_change_irq_handler(int irq, void *data)
 		 * Force re-run APSD to handle slow insertion related
 		 * charger-mis-detection.
 		 */
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 		chg->uusb_apsd_rerun_done = true;
 		smblib_rerun_apsd_if_required(chg);
 		return IRQ_HANDLED;
@@ -6491,7 +6491,7 @@ irqreturn_t smb5_usb_source_change_irq_handler(int irq, void *data)
 	smblib_handle_apsd_done(chg,
 		(bool)(stat & APSD_DTC_STATUS_DONE_BIT));
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	if ((bool)(stat & APSD_DTC_STATUS_DONE_BIT))
 		oplus_chg_wake_update_work();
 #endif
@@ -6558,7 +6558,7 @@ enum alarmtimer_restart smblib_lpd_recheck_timer(struct alarm *alarm,
 	chg->lpd_stage = LPD_STAGE_NONE;
 	chg->lpd_reason = LPD_NONE;
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	smblib_err(chg, "%s: LPD_NONE detected\n", __func__);
 	if ((oplus_get_usb_status() & USB_WATER_DETECT) != 0 && g_oplus_chip) {
 		oplus_clear_usb_status(USB_WATER_DETECT);
@@ -6611,7 +6611,7 @@ static bool smblib_src_lpd(struct smb_charger *chg)
 		vote(chg->usb_icl_votable, LPD_VOTER, true, 0);
 		alarm_start_relative(&chg->lpd_recheck_timer,
 						ms_to_ktime(60000));
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 		smblib_err(chg, "%s: LPD_MOISTURE_DETECTED detected\n", __func__);
 		if ((oplus_get_usb_status() & USB_WATER_DETECT) == 0 && g_oplus_chip) {
                     oplus_vooc_set_disable_adapter_output(true);
@@ -6623,7 +6623,7 @@ static bool smblib_src_lpd(struct smb_charger *chg)
 	} else {
 		chg->lpd_reason = LPD_NONE;
 		chg->typec_mode = smblib_get_prop_typec_mode(chg);
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 		smblib_err(chg, "%s: LPD_NONE detected\n", __func__);
 		if ((oplus_get_usb_status() & USB_WATER_DETECT) != 0 && g_oplus_chip) {
                     oplus_vooc_set_disable_adapter_output(false);
@@ -6894,7 +6894,7 @@ static void typec_src_removal(struct smb_charger *chg)
 	cancel_delayed_work_sync(&chg->pl_enable_work);
 
 	/* reset input current limit voters */
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 	vote(chg->usb_icl_votable, SW_ICL_MAX_VOTER, true,
 			is_flash_active(chg) ? SDP_CURRENT_UA : SDP_100_MA);
 #else
@@ -7121,7 +7121,7 @@ irqreturn_t smb5_typec_state_change_irq_handler(int irq, void *data)
 	struct smb_irq_data *irq_data = data;
 	struct smb_charger *chg = irq_data->parent_data;
 	int typec_mode;
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	bool current_status = 0;
 	static bool dfp_status = 0;
 	struct oplus_chg_chip *chip = g_oplus_chip;
@@ -7139,7 +7139,7 @@ irqreturn_t smb5_typec_state_change_irq_handler(int irq, void *data)
 		smblib_handle_rp_change(chg, typec_mode);
 	chg->typec_mode = typec_mode;
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	current_status = (chg->typec_mode >= QTI_POWER_SUPPLY_TYPEC_SINK
 			&& chg->typec_mode <= QTI_POWER_SUPPLY_TYPEC_POWERED_CABLE_ONLY);
 	if (dfp_status ^ current_status) {
@@ -7618,7 +7618,7 @@ static void smblib_bb_removal_work(struct work_struct *work)
 
 #define BOOST_BACK_UNVOTE_DELAY_MS		750
 #define BOOST_BACK_STORM_COUNT			3
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 #define WEAK_CHG_STORM_COUNT			3
 #else
 #define WEAK_CHG_STORM_COUNT			8
@@ -7627,7 +7627,7 @@ irqreturn_t smb5_switcher_power_ok_irq_handler(int irq, void *data)
 {
 	struct smb_irq_data *irq_data = data;
 	struct smb_charger *chg = irq_data->parent_data;
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 	struct storm_watch *wdata = &irq_data->storm_data;
 #endif
 	int rc, usb_icl;
@@ -7651,7 +7651,7 @@ irqreturn_t smb5_switcher_power_ok_irq_handler(int irq, void *data)
 		return IRQ_HANDLED;
 
 	if (is_storming(&irq_data->storm_data)) {
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 		/* This could be a weak charger reduce ICL */
 		if (!is_client_vote_enabled(chg->usb_icl_votable,
 						WEAK_CHARGER_VOTER)) {
@@ -7821,7 +7821,7 @@ int smblib_set_prop_pr_swap_in_progress(struct smb_charger *chg,
 {
 	int rc;
 	u8 stat = 0, orientation;
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	u8 reg_val = 0;
 	int level = 0;
 	struct oplus_chg_chip *chip = g_oplus_chip;
@@ -7877,7 +7877,7 @@ int smblib_set_prop_pr_swap_in_progress(struct smb_charger *chg,
 			return rc;
 		}
 
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 		/* enable DRP */
 		rc = smblib_masked_write(chg, TYPE_C_MODE_CFG_REG,
 				 TYPEC_POWER_ROLE_CMD_MASK, 0);
@@ -8169,7 +8169,7 @@ static void smblib_pl_enable_work(struct work_struct *work)
 							pl_enable_work.work);
 
 	smblib_dbg(chg, PR_PARALLEL, "timer expired, enabling parallel\n");
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	vote(chg->fcc_votable, PL_DELAY_VOTER, false, 0);
 	oplus_chg_set_input_current_limit(g_oplus_chip);
 #endif
@@ -8733,7 +8733,7 @@ static void smblib_lpd_ra_open_work(struct work_struct *work)
 		chg->lpd_reason = LPD_MOISTURE_DETECTED;
 		chg->moisture_present =  true;
 		vote(chg->usb_icl_votable, LPD_VOTER, true, 0);
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 		smblib_err(chg, "%s: LPD_MOISTURE_DETECTED detected\n", __func__);
 		if ((oplus_get_usb_status() & USB_WATER_DETECT) == 0 && g_oplus_chip) {
                     oplus_vooc_set_disable_adapter_output(true);
@@ -8761,7 +8761,7 @@ static void smblib_lpd_ra_open_work(struct work_struct *work)
 		}
 
 		chg->lpd_reason = LPD_FLOATING_CABLE;
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 		smblib_err(chg, "%s: LPD_NONE detected\n", __func__);
 		if ((oplus_get_usb_status() & USB_WATER_DETECT) != 0 && g_oplus_chip) {
                     oplus_vooc_set_disable_adapter_output(false);
@@ -8786,7 +8786,7 @@ static void smblib_lpd_detach_work(struct work_struct *work)
 		chg->lpd_stage = LPD_STAGE_NONE;
 }
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 static void oplus_chargerid_switch_work(struct work_struct *work)
 {
 	smbchg_set_chargerid_switch_val(0);
@@ -8830,7 +8830,7 @@ static void typec_disable_cmd_work(struct work_struct *work)
 	return;
 }
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 static void oplus_usbtemp_clear_dischg(struct oplus_chg_chip *chip) {
 	int rc = 0;
 	struct smb_charger *chg = NULL;
@@ -9379,7 +9379,7 @@ int smblib_init(struct smb_charger *chg)
 	INIT_WORK(&chg->cp_status_change_work, smblib_cp_status_change_work);
 	INIT_DELAYED_WORK(&chg->clear_hdc_work, clear_hdc_work);
 	INIT_DELAYED_WORK(&chg->icl_change_work, smblib_icl_change_work);
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	INIT_DELAYED_WORK(&chg->chg_monitor_work, oplus_chg_monitor_work);
 	if (chg->support_ccdetect)
 		INIT_DELAYED_WORK(&chg->ccdetect_work, oplus_ccdetect_work);

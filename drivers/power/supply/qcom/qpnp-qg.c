@@ -39,7 +39,7 @@
 #include "qg-battery-profile.h"
 #include "qg-defs.h"
 #include "battery-profile-loader.h"
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 #include <linux/rtc.h>
 #include "../../oplus/oplus_gauge.h"
 
@@ -198,7 +198,7 @@ static bool is_battery_present(struct qpnp_qg *chip)
 	return present;
 }
 
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 #define DEBUG_BATT_ID_LOW	6000
 #define DEBUG_BATT_ID_HIGH	8500
 #else
@@ -3295,7 +3295,7 @@ static int qg_setup_battery(struct qpnp_qg *chip)
 			pr_err("Failed to detect batt_id rc=%d\n", rc);
 			chip->profile_loaded = false;
 		} else {
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 			if(((chip->batt_id_ohm % 1000) > 500) || ((chip->batt_id_ohm % 1000) == 500)) {
 				chip->batt_id_ohm = chip->batt_id_ohm + 500;
 			}
@@ -4291,7 +4291,7 @@ static int qg_parse_cl_dt(struct qpnp_qg *chip)
 #define DEFAULT_FVSS_VBAT_MV		3500
 #define DEFAULT_TCSS_ENTRY_SOC		90
 #define DEFAULT_ESR_LOW_TEMP_THRESHOLD	100 /* 10 deg */
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 #define DEFAULT_CAPACITY_MAH		5000
 #endif
 static int qg_parse_dt(struct qpnp_qg *chip)
@@ -4542,7 +4542,7 @@ static int qg_parse_dt(struct qpnp_qg *chip)
 	chip->dt.multi_profile_load = of_property_read_bool(node,
 					"qcom,multi-profile-load");
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	rc = of_property_read_u32(node, "qcom,typical_capacity_mah", &temp);
 	if (rc < 0)
 		chip->typical_capacity_mah = DEFAULT_CAPACITY_MAH;
@@ -4804,7 +4804,7 @@ static const struct dev_pm_ops qpnp_qg_pm_ops = {
 	.resume		= qpnp_qg_resume,
 };
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 #define DEFAULT_BATT_SOC             50
 #define MAX_WAIT_FOR_HEALTHD_COUNT   12
 
@@ -5035,7 +5035,7 @@ static int qpnp_qg_probe(struct platform_device *pdev)
 	struct qpnp_qg *chip;
 	struct iio_dev *indio_dev;
 	struct qg_config *config;
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	struct oplus_gauge_chip	*oplus_chip;
 #endif
 
@@ -5052,7 +5052,7 @@ static int qpnp_qg_probe(struct platform_device *pdev)
 		return -ENXIO;
 	}
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	qpnp_gauge_ic= chip;
 #endif
 
@@ -5095,7 +5095,7 @@ static int qpnp_qg_probe(struct platform_device *pdev)
 	chip->esr_actual = -EINVAL;
 	chip->esr_nominal = -EINVAL;
 	chip->batt_age_level = -EINVAL;
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	chip->oplus_batt_type = OPLUS_NON_STD_BATT;
 #endif
 
@@ -5153,7 +5153,7 @@ static int qpnp_qg_probe(struct platform_device *pdev)
 		return rc;
 	}
 
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 	rc = qg_register_device(chip);
 	if (rc < 0) {
 		pr_err("Failed to register QG char device, rc=%d\n", rc);
@@ -5170,14 +5170,14 @@ static int qpnp_qg_probe(struct platform_device *pdev)
 	rc = qg_soc_init(chip);
 	if (rc < 0) {
 		pr_err("Failed to initialize SOC scaling init rc=%d\n", rc);
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 		return rc;
 #else
 		return -EPROBE_DEFER;
 #endif
 	}
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	rc = qg_register_device(chip);
 	if (rc < 0) {
 		pr_err("Failed to register QG char device, rc=%d\n", rc);
@@ -5286,7 +5286,7 @@ static int qpnp_qg_probe(struct platform_device *pdev)
 			(chip->qg_version == QG_LITE) ? "QG_LITE" : "QG_PMIC5",
 			(chip->qg_mode == QG_V_I_MODE) ? "QG_V_I" : "QG_V");
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	oplus_chip = devm_kzalloc(&pdev->dev,
 				sizeof(struct oplus_gauge_chip), GFP_KERNEL);
 	if (!oplus_chip) {

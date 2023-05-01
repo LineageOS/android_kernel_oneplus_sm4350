@@ -25,7 +25,7 @@
 #include "smb5-iio.h"
 #include "schgm-flash.h"
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 #include <linux/gpio.h>
 #include <linux/of_gpio.h>
 #include <linux/rtc.h>
@@ -242,7 +242,7 @@ static struct smb_params smb5_pm8150b_params = {
 		.set_proc = smblib_set_aicl_cont_threshold,
 	},
 };
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 struct smb_dt_props {
 	int			usb_icl_ua;
 	enum float_options	float_option;
@@ -273,7 +273,7 @@ struct smb5 {
 };
 #endif
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 
 static int oplus_chg_2uart_pinctrl_init(struct oplus_chg_chip *chip)
 {
@@ -1591,14 +1591,14 @@ static int smb5_configure_internal_pull(struct smb_charger *chg, int type,
 	return rc;
 }
 
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 #define MICRO_1P5A			1500000
 #else
 #define MICRO_1P5A			1000000
 #endif
 #define MICRO_P1A			100000
 #define MICRO_1PA			1000000
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 #define MICRO_3PA			3000000
 #else
 #define MICRO_3PA			1500000
@@ -1790,7 +1790,7 @@ static int smb5_parse_dt_misc(struct smb5 *chip, struct device_node *node)
 	if (chg->chg_param.qc4_max_icl_ua <= 0)
 		chg->chg_param.qc4_max_icl_ua = MICRO_4PA;
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	chg->support_ccdetect = of_property_read_bool(node,
 					"qcom,support_ccdetect");
 #endif
@@ -2038,7 +2038,7 @@ static enum power_supply_property smb5_usb_props[] = {
 	POWER_SUPPLY_PROP_POWER_NOW,
 };
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 /**************************************************************
  * bit[0]=0: NO standard typec device/cable connected(ccdetect gpio in high level)
  * bit[0]=1: standard typec device/cable connected(ccdetect gpio in low level)
@@ -2205,7 +2205,7 @@ static int smb5_usb_get_prop(struct power_supply *psy,
 		rc = smblib_get_prop_usb_present(chg, val);
 		break;
 	case POWER_SUPPLY_PROP_ONLINE:
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 		if (use_present_status)
 			rc = smblib_get_prop_usb_present(chg, val);
 		else
@@ -2307,13 +2307,13 @@ static int smb5_usb_prop_is_writeable(struct power_supply *psy,
 	return 0;
 }
 
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 static const struct power_supply_desc usb_psy_desc = {
 #else
 static struct power_supply_desc usb_psy_desc = {
 #endif
 	.name = "usb",
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 	.type = POWER_SUPPLY_TYPE_USB_PD,
 #else
 	.type = POWER_SUPPLY_TYPE_UNKNOWN,
@@ -2343,7 +2343,7 @@ static int smb5_init_usb_psy(struct smb5 *chip)
 	return 0;
 }
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 void oplus_set_smb5_usb_props_type(enum power_supply_type type)
 {
 	chg_err("old type[%d], new type[%d]\n", usb_psy_desc.type, type);
@@ -2352,7 +2352,7 @@ void oplus_set_smb5_usb_props_type(enum power_supply_type type)
 }
 #endif
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 /*************************
  * AC PSY REGISTRATION *
  *************************/
@@ -2422,7 +2422,7 @@ static int smb5_usb_port_get_prop(struct power_supply *psy,
 		val->intval = POWER_SUPPLY_TYPE_USB;
 		break;
 	case POWER_SUPPLY_PROP_ONLINE:
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 		if (use_present_status)
 			rc = smblib_get_prop_usb_present(chg, val);
 		else
@@ -2653,7 +2653,7 @@ static enum power_supply_property smb5_batt_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	POWER_SUPPLY_PROP_CHARGE_NOW,
 	POWER_SUPPLY_PROP_CAPACITY_LEVEL,
 #endif
@@ -2670,7 +2670,7 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
-//#ifndef OPLUS_FEATURE_CHG_BASIC
+//#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 		rc = smblib_get_prop_batt_status(chg, pval);
 /*#else
 		if (oplus_chg_show_vooc_logo_ornot() == 1) {
@@ -2687,7 +2687,7 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 #endif*/
 		break;
 	case POWER_SUPPLY_PROP_HEALTH:
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 		rc = smblib_get_prop_batt_health(chg, pval);
 #else
 		pval->intval = oplus_chg_get_prop_batt_health(g_oplus_chip);
@@ -2703,7 +2703,7 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 		rc = smblib_get_prop_batt_charge_type(chg, pval);
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 		rc = smblib_get_prop_batt_capacity(chg, pval);
 #else
 		if(g_oplus_chip->vooc_show_ui_soc_decimal == true && g_oplus_chip->decimal_control) {
@@ -2734,7 +2734,7 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 						      BATT_PROFILE_VOTER);
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 		rc = smblib_get_batt_current_now(chg, pval);
 #else
 		pval->intval = oplus_gauge_get_batt_current();
@@ -2751,7 +2751,7 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 		rc = smblib_get_prop_batt_iterm(chg, pval);
 		break;
 	case POWER_SUPPLY_PROP_TEMP:
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 		if (chg->typec_mode ==
 			QTI_POWER_SUPPLY_TYPEC_SINK_DEBUG_ACCESSORY)
 			pval->intval = DEBUG_ACCESSORY_TEMP_DECIDEGC;
@@ -2785,7 +2785,7 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 		rc = smblib_get_prop_from_bms(chg,
 				SMB5_QG_TIME_TO_FULL_NOW, &pval->intval);
 		break;
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	case POWER_SUPPLY_PROP_CHARGE_NOW:
 		if (oplus_vooc_get_fastchg_started() == true && (g_oplus_chip->vbatt_num == 2)
 				&& oplus_vooc_get_fast_chg_type() != CHARGER_SUBTYPE_FASTCHG_VOOC) {
@@ -3059,7 +3059,7 @@ static int smb5_configure_typec(struct smb_charger *chg)
 		return rc;
 	}
 
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 	/* enable try.snk and clear force sink for DRP mode */
 	rc = smblib_masked_write(chg, TYPE_C_MODE_CFG_REG,
 				EN_TRY_SNK_BIT | EN_SNK_ONLY_BIT,
@@ -3129,7 +3129,7 @@ static int smb5_configure_typec(struct smb_charger *chg)
 		dev_err(chg->dev,
 			"Couldn't configure CC threshold voltage rc=%d\n", rc);
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 		rc = smblib_masked_write(chg, DCDC_OTG_CURRENT_LIMIT_CFG_REG,
 			DCDC_OTG_CURRENT_LIMIT_1000MA_BIT, DCDC_OTG_CURRENT_LIMIT_1000MA_BIT);
 		if (rc < 0)
@@ -3665,7 +3665,7 @@ static int smb5_init_hw(struct smb5 *chip)
 	 * AICL configuration: enable aicl and aicl rerun and based on DT
 	 * configuration enable/disable ADB based AICL and Suspend on collapse.
 	 */
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	mask = SUSPEND_ON_COLLAPSE_USBIN_BIT | USBIN_AICL_START_AT_MAX_BIT
                         | USBIN_AICL_ADC_EN_BIT | USBIN_AICL_PERIODIC_RERUN_EN_BIT;
 	val = USBIN_AICL_PERIODIC_RERUN_EN_BIT;
@@ -3714,7 +3714,7 @@ static int smb5_init_hw(struct smb5 *chip)
 		return rc;
 	}
 
-#ifndef OPLUS_FEATURE_CHG_BASIC
+#ifdef CONFIG_OPLUS_SM6375R_CHARGER
 	val = (ilog2(chip->dt.wd_bark_time / 16) << BARK_WDOG_TIMEOUT_SHIFT)
 			& BARK_WDOG_TIMEOUT_MASK;
 	val |= (BITE_WDOG_TIMEOUT_8S | BITE_WDOG_DISABLE_CHARGING_CFG_BIT);
@@ -3751,7 +3751,7 @@ static int smb5_init_hw(struct smb5 *chip)
 		return rc;
 	}
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
         /* Add for TYPE_C_CHANGE_IRQ storm(and counter current) */
 	smblib_masked_write(chg, 0x1380, 0x03, 0x3);
 
@@ -3927,7 +3927,7 @@ static int smb5_determine_initial_status(struct smb5 *chip)
 	smb5_wdog_bark_irq_handler(0, &irq_data);
 	smb5_typec_or_rid_detection_change_irq_handler(0, &irq_data);
 	smb5_wdog_snarl_irq_handler(0, &irq_data);
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	if (chg->early_usb_attach)
 		schedule_delayed_work(&chg->typec_disable_cmd_work, msecs_to_jiffies(1000));
 #endif
@@ -3997,7 +3997,7 @@ static struct smb_irq_info smb5_irqs[] = {
 	[SWITCHER_POWER_OK_IRQ] = {
 		.name		= "switcher-power-ok",
 		.handler	= smb5_switcher_power_ok_irq_handler,
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 		.storm_data = {true, 1000, 3},
 #endif
 	},
@@ -4333,7 +4333,7 @@ static int force_dc_psy_update_write(void *data, u64 val)
 {
 	struct smb_charger *chg = data;
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	if (chg->dc_psy)
 		power_supply_changed(chg->dc_psy);
 #else
@@ -4386,7 +4386,7 @@ static void smb5_create_debugfs(struct smb5 *chip)
 
 #endif
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 static bool d_reg_mask = false;
 static ssize_t dump_registers_mask_write(struct file *file, const char __user *buff, size_t count, loff_t *ppos)
 {
@@ -5754,7 +5754,7 @@ static int smb5_probe(struct platform_device *pdev)
 	struct smb_charger *chg;
 	int rc = 0;
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	struct oplus_chg_chip *oplus_chip;
 	struct power_supply *main_psy = NULL;
 	union power_supply_propval pval = {0, };
@@ -5778,7 +5778,7 @@ static int smb5_probe(struct platform_device *pdev)
 	if (!chip->iio_chan_ids)
 		return -ENOMEM;
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	oplus_chip = devm_kzalloc(&pdev->dev, sizeof(*oplus_chip), GFP_KERNEL);
 	if (!oplus_chip)
 		return -ENOMEM;
@@ -5819,7 +5819,7 @@ static int smb5_probe(struct platform_device *pdev)
 	chg->main_fcc_max = -EINVAL;
 	mutex_init(&chg->adc_lock);
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	oplus_chip->pmic_spmi.smb5_chip = chip;
 	chg->support_ccdetect = false;
 #endif
@@ -5847,7 +5847,7 @@ static int smb5_probe(struct platform_device *pdev)
 		return rc;
 	}
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	mutex_init(&chg->pinctrl_mutex);
 	chg->pre_current_ma = -1;
 
@@ -5956,13 +5956,13 @@ static int smb5_probe(struct platform_device *pdev)
 		goto cleanup;
 	}
 
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	rc = smb5_init_ac_psy(chip);
 	if (rc < 0) {
 		pr_err("Couldn't initialize ac psy rc=%d\n", rc);
 		goto cleanup;
 	}
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
         if (oplus_chg_is_usb_present()) {
                 rc = smblib_masked_write(chg, CHARGING_ENABLE_CMD_REG,
                                 CHARGING_ENABLE_CMD_BIT, 0);
@@ -6026,7 +6026,7 @@ static int smb5_probe(struct platform_device *pdev)
 		goto free_irq;
 	}
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	if (chg->support_ccdetect && oplus_ccdetect_check_is_gpio(oplus_chip))
 		oplus_ccdetect_irq_register(oplus_chip);
 
@@ -6086,7 +6086,7 @@ static int smb5_remove(struct platform_device *pdev)
 	smb5_free_interrupts(chg);
 	smblib_deinit(chg);
 	sysfs_remove_groups(&chg->dev->kobj, smb5_groups);
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	oplus_chg_configfs_exit();
 #endif
 	platform_set_drvdata(pdev, NULL);
@@ -6099,7 +6099,7 @@ static void smb5_shutdown(struct platform_device *pdev)
 	struct smb5 *chip = platform_get_drvdata(pdev);
 	struct smb_charger *chg = &chip->chg;
 
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	int level = 0;
 
 	if (g_oplus_chip) {
@@ -6124,7 +6124,7 @@ static void smb5_shutdown(struct platform_device *pdev)
 	/* force enable and rerun APSD */
 	smblib_apsd_enable(chg, true);
 	smblib_hvdcp_exit_config(chg);
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 	if (oplus_shipmode_id_check_is_gpio(g_oplus_chip) == true) {
 		level = gpio_get_value(chg->shipmode_id_gpio);
 	}
@@ -6160,7 +6160,7 @@ static struct platform_driver smb5_driver = {
 	.driver		= {
 		.name		= "qcom,qpnp-smb5",
 		.of_match_table	= match_table,
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 		.pm		= &smb5_pm_ops,
 #endif
 	},
@@ -6168,7 +6168,7 @@ static struct platform_driver smb5_driver = {
 	.remove		= smb5_remove,
 	.shutdown	= smb5_shutdown,
 };
-#ifdef OPLUS_FEATURE_CHG_BASIC
+#ifndef CONFIG_OPLUS_SM6375R_CHARGER
 static int __init sm4350_chg_init(void)
 {
 	int ret;
