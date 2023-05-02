@@ -9,6 +9,7 @@
 		torch-source  = <&pm6150l_torch0>;
 		switch-source = <&pm6150l_switch0>;
 		status = "ok";
+		pmic-pm8008;
 	};
 
 	led_flash_rear_aux: qcom,camera-flash@1 {
@@ -20,6 +21,7 @@
 		torch-source  = <&pm6150l_torch0>;
 		switch-source = <&pm6150l_switch0>;
 		status = "ok";
+		pmic-pm8008;
 	};
 
 	led_flash_rear_aux2: qcom,camera-flash@3 {
@@ -31,6 +33,7 @@
 		torch-source  = <&pm6150l_torch0>;
 		switch-source = <&pm6150l_switch0>;
 		status = "ok";
+		pmic-pm8008;
 	};
 
 	qcom,cam-res-mgr {
