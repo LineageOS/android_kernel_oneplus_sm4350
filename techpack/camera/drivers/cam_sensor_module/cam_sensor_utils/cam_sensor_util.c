@@ -10,6 +10,22 @@
 #include "cam_mem_mgr.h"
 #include "cam_res_mgr_api.h"
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+typedef enum {
+	EXT_NONE=-1,
+	EXT_LDO1,
+	EXT_LDO2,
+	EXT_LDO3,
+	EXT_LDO4,
+	EXT_LDO5,
+	EXT_LDO6,
+	EXT_LDO7,
+	EXT_MAX
+} EXT_SELECT;
+extern int wl2868c_ldo_enable(EXT_SELECT ldonum,unsigned int value);
+extern int wl2868c_ldo_disable(EXT_SELECT ldonum,unsigned int value);
+#endif /* OPLUS_FEATURE_CAMERA_COMMON */
+
 #define CAM_SENSOR_PINCTRL_STATE_SLEEP "cam_suspend"
 #define CAM_SENSOR_PINCTRL_STATE_DEFAULT "cam_default"
 
@@ -1118,6 +1134,19 @@ int32_t msm_camera_fill_vreg_params(
 				power_setting[i].seq_val = INVALID_VREG;
 			break;
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+		case SENSOR_EXT_L1:
+		case SENSOR_EXT_L2:
+		case SENSOR_EXT_L3:
+		case SENSOR_EXT_L4:
+		case SENSOR_EXT_L5:
+		case SENSOR_EXT_L6:
+		case SENSOR_EXT_L7:
+			CAM_DBG(CAM_SENSOR, "seq type %d config val %d", power_setting[i].seq_type, power_setting[i].config_val);
+			power_setting[i].seq_val = 50;
+			break;
+#endif
+
 		case SENSOR_VAF:
 			for (j = 0; j < num_vreg; j++) {
 
@@ -2216,6 +2245,19 @@ int cam_sensor_core_power_up(struct cam_sensor_power_ctrl_t *ctrl,
 				goto power_up_failed;
 			}
 			break;
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+		case SENSOR_EXT_L1:
+		case SENSOR_EXT_L2:
+		case SENSOR_EXT_L3:
+		case SENSOR_EXT_L4:
+		case SENSOR_EXT_L5:
+		case SENSOR_EXT_L6:
+		case SENSOR_EXT_L7:
+			CAM_DBG(CAM_SENSOR, "power seq type %d seq val %d config value %d",
+				power_setting->seq_type, power_setting->seq_val, power_setting->config_val);
+			wl2868c_ldo_enable(power_setting->seq_type - SENSOR_EXT_L1 , power_setting->config_val);
+			break;
+#endif
 		default:
 			CAM_ERR(CAM_SENSOR, "error power seq type %d",
 				power_setting->seq_type);
@@ -2483,6 +2525,17 @@ int cam_sensor_util_power_down(struct cam_sensor_power_ctrl_t *ctrl,
 				CAM_ERR(CAM_SENSOR,
 					"Error disabling VREG GPIO");
 			break;
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+		case SENSOR_EXT_L1:
+		case SENSOR_EXT_L2:
+		case SENSOR_EXT_L3:
+		case SENSOR_EXT_L4:
+		case SENSOR_EXT_L5:
+		case SENSOR_EXT_L6:
+		case SENSOR_EXT_L7:
+			wl2868c_ldo_disable(pd->seq_type - SENSOR_EXT_L1, 0);
+			break;
+#endif
 		default:
 			CAM_ERR(CAM_SENSOR, "error power seq type %d",
 				pd->seq_type);

@@ -230,6 +230,8 @@ struct cam_flash_ctrl {
 	const char *                        flash_name;
 /*Add by Fangyan @ Camera 2020/08/17 for flash current*/
 	uint32_t                            flash_current;
+/*Add by zhangming @ Camera 2022/05/16 for seprate pm8008 and wl2868c*/
+	bool                                pmic_pm8008;
 #endif
 };
 

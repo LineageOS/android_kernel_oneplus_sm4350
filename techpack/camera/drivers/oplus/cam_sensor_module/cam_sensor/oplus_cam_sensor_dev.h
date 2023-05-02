@@ -26,6 +26,8 @@ struct cam_sensor_settings {
 	struct cam_sensor_i2c_reg_setting_array ov48b_setting;
 	struct cam_sensor_i2c_reg_setting_array imx471_setting;
 	struct cam_sensor_i2c_reg_setting_array ov13b10_setting;
+	struct cam_sensor_i2c_reg_setting_array ov64b_setting;
+	struct cam_sensor_i2c_reg_setting_array ov16a1q_setting;
 };
 
 long oplus_cam_sensor_subdev_ioctl(struct v4l2_subdev *sd,

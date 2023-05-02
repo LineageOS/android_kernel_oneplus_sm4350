@@ -5933,6 +5933,70 @@ static struct snd_soc_dai_link msm_afe_rxtx_lb_be_dai_link[] = {
 	},
 };
 
+#ifdef OPLUS_ARCH_EXTENDS
+SND_SOC_DAILINK_DEFS(tfa98xx_pri_mi2s_rx,
+	DAILINK_COMP_ARRAY(COMP_CPU("msm-dai-q6-mi2s.0")),
+	DAILINK_COMP_ARRAY(COMP_CODEC("tfa98xx.2-0034", "tfa98xx-aif-2-34"),),
+	DAILINK_COMP_ARRAY(COMP_PLATFORM("msm-pcm-routing")));
+
+static struct snd_soc_dai_link tfa98xx_mono_be_dai_links[] = {
+	{
+		.name = LPASS_BE_PRI_MI2S_RX,
+		.stream_name = "Primary MI2S Playback",
+		.no_pcm = 1,
+		.dpcm_playback = 1,
+		.id = MSM_BACKEND_DAI_PRI_MI2S_RX,
+		.be_hw_params_fixup = msm_be_hw_params_fixup,
+		.ops = &msm_mi2s_be_ops,
+		.ignore_suspend = 1,
+		.ignore_pmdown_time = 1,
+		SND_SOC_DAILINK_REG(tfa98xx_pri_mi2s_rx),
+	},
+};
+
+SND_SOC_DAILINK_DEFS(tfa98xx_stereo_pri_mi2s_rx,
+	DAILINK_COMP_ARRAY(COMP_CPU("msm-dai-q6-mi2s.0")),
+	DAILINK_COMP_ARRAY(COMP_CODEC("tfa98xx.2-0034", "tfa98xx-aif-2-34"),
+	                   COMP_CODEC("tfa98xx.2-0037", "tfa98xx-aif-2-37")),
+	DAILINK_COMP_ARRAY(COMP_PLATFORM("msm-pcm-routing")));
+
+SND_SOC_DAILINK_DEFS(tfa98xx_stereo_hepburn_pri_mi2s_rx,
+	DAILINK_COMP_ARRAY(COMP_CPU("msm-dai-q6-mi2s.0")),
+	DAILINK_COMP_ARRAY(COMP_CODEC("tfa98xx.2-0034", "tfa98xx-aif-2-34"),
+	                   COMP_CODEC("tfa98xx.2-0035", "tfa98xx-aif-2-35")),
+	DAILINK_COMP_ARRAY(COMP_PLATFORM("msm-pcm-routing")));
+
+static struct snd_soc_dai_link tfa98xx_stereo_be_dai_links[] = {
+	{
+		.name = LPASS_BE_PRI_MI2S_RX,
+		.stream_name = "Primary MI2S Playback",
+		.no_pcm = 1,
+		.dpcm_playback = 1,
+		.id = MSM_BACKEND_DAI_PRI_MI2S_RX,
+		.be_hw_params_fixup = msm_be_hw_params_fixup,
+		.ops = &msm_mi2s_be_ops,
+		.ignore_suspend = 1,
+		.ignore_pmdown_time = 1,
+		SND_SOC_DAILINK_REG(tfa98xx_stereo_pri_mi2s_rx),
+	},
+};
+
+static struct snd_soc_dai_link tfa98xx_stereo_hepburn_be_dai_links[] = {
+	{
+		.name = LPASS_BE_PRI_MI2S_RX,
+		.stream_name = "Primary MI2S Playback",
+		.no_pcm = 1,
+		.dpcm_playback = 1,
+		.id = MSM_BACKEND_DAI_PRI_MI2S_RX,
+		.be_hw_params_fixup = msm_be_hw_params_fixup,
+		.ops = &msm_mi2s_be_ops,
+		.ignore_suspend = 1,
+		.ignore_pmdown_time = 1,
+		SND_SOC_DAILINK_REG(tfa98xx_stereo_hepburn_pri_mi2s_rx),
+	},
+};
+#endif /* OPLUS_ARCH_EXTENDS */
+
 static struct snd_soc_dai_link msm_holi_dai_links[
 			ARRAY_SIZE(msm_common_dai_links) +
 			ARRAY_SIZE(msm_common_misc_fe_dai_links) +
@@ -6199,6 +6263,12 @@ static struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 	u32 val = 0;
 	u32 wcn_btfm_intf = 0;
 	const struct of_device_id *match;
+	#ifdef OPLUS_ARCH_EXTENDS
+	int i;
+	const char *product_name = NULL;
+	const char *oplus_speaker_type = "oplus,speaker-pa";
+	struct snd_soc_dai_link *temp_link;
+	#endif /* OPLUS_ARCH_EXTENDS */
 
 	match = of_match_node(holi_asoc_machine_of_match, dev->of_node);
 	if (!match) {
@@ -6244,6 +6314,32 @@ static struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 				__func__);
 		} else {
 			if (mi2s_audio_intf) {
+				#ifdef OPLUS_ARCH_EXTENDS
+				if (!of_property_read_string(dev->of_node, oplus_speaker_type,
+						&product_name)) {
+					pr_err("%s: custom speaker product %s\n", __func__, product_name);
+					for (i = 0; i < ARRAY_SIZE(msm_mi2s_be_dai_links); i++) {
+						temp_link = &msm_mi2s_be_dai_links[i];
+						if (temp_link->id == MSM_BACKEND_DAI_PRI_MI2S_RX) {
+							#ifdef CONFIG_SND_SOC_TFA98XX
+							if (!strcmp(product_name, "nxp")) {
+								pr_info("%s: use nxp mono dailink replace\n", __func__);
+								memcpy(temp_link, &tfa98xx_mono_be_dai_links[0],
+										sizeof(tfa98xx_mono_be_dai_links[0]));
+							} else if (!strcmp(product_name, "nxp_stereo")) {
+								pr_info("%s: use nxp stereo dailink replace\n", __func__);
+								memcpy(temp_link, &tfa98xx_stereo_be_dai_links[0],
+										sizeof(tfa98xx_stereo_be_dai_links[0]));
+							} else if (!strcmp(product_name, "nxp_stereo_hepburn")) {
+								pr_info("%s: use nxp stereo dailink replace\n", __func__);
+								memcpy(temp_link, &tfa98xx_stereo_hepburn_be_dai_links[0],
+										sizeof(tfa98xx_stereo_hepburn_be_dai_links[0]));
+							}
+							#endif
+						}
+					}
+				}
+				#endif /* OPLUS_ARCH_EXTENDS */
 				memcpy(msm_holi_dai_links + total_links,
 					msm_mi2s_be_dai_links,
 					sizeof(msm_mi2s_be_dai_links));

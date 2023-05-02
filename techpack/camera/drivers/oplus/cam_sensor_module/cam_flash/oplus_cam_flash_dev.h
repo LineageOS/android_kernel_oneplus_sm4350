@@ -30,6 +30,20 @@
 #include "cam_flash_core.h"
 #include "cam_context.h"
 
+typedef enum {
+	EXT_NONE=-1,
+	EXT_LDO1,
+	EXT_LDO2,
+	EXT_LDO3,
+	EXT_LDO4,
+	EXT_LDO5,
+	EXT_LDO6,
+	EXT_LDO7,
+	EXT_MAX
+} EXT_SELECT;
+extern int wl2868c_ldo_enable(EXT_SELECT ldonum,unsigned int value);
+extern int wl2868c_ldo_disable(EXT_SELECT ldonum,unsigned int value);
+
 void oplus_cam_flash_proc_init(struct cam_flash_ctrl *flash_ctl, struct platform_device *pdev);
 int cam_flash_on(struct cam_flash_ctrl *flash_ctrl,
 	struct cam_flash_frame_setting *flash_data,

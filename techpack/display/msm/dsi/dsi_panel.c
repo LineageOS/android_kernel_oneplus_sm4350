@@ -2041,6 +2041,7 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-aod-off-command",
 	"qcom,mdss-dsi-hbm-on-command",
 	"qcom,mdss-dsi-hbm-off-command",
+	"qcom,mdss-dsi-hbm-off-highlight-command",
 	"qcom,mdss-dsi-aod-hbm-on-command",
 	"qcom,mdss-dsi-aod-hbm-off-command",
 	"qcom,mdss-dsi-seed-0-command",
@@ -2071,6 +2072,8 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-loading-effect-off-command",
 	"qcom,mdss-dsi-ili-read-on-command",
 	"qcom,mdss-dsi-ili-read-off-command",
+	"qcom,mdss-dsi-failsafe-on-command",
+	"qcom,mdss-dsi-failsafe-off-command",
 #endif /*OPLUS_BUG_STABILITY*/
 };
 
@@ -2104,6 +2107,7 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-aod-off-command-state",
 	"qcom,mdss-dsi-hbm-on-command-state",
 	"qcom,mdss-dsi-hbm-off-command-state",
+	"qcom,mdss-dsi-hbm-off-highlight-command-state",
 	"qcom,mdss-dsi-aod-hbm-on-command-state",
 	"qcom,mdss-dsi-aod-hbm-off-command-state",
 	"qcom,mdss-dsi-seed-0-command-state",
@@ -2134,6 +2138,8 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-loading-effect-off-command-state",
 	"qcom,mdss-dsi-ili-read-on-command-state",
 	"qcom,mdss-dsi-ili-read-off-command-state",
+	"qcom,mdss-dsi-failsafe-on-command-state",
+	"qcom,mdss-dsi-failsafe-off-command-state",
 #endif /*OPLUS_BUG_STABILITY*/
 };
 

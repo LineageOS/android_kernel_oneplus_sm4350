@@ -258,7 +258,8 @@ int dsi_display_set_backlight(struct drm_connector *connector,
 	}
 
 	/* Add some delay to avoid screen flash */
-	if (panel->need_power_on_backlight && bl_lvl) {
+	if (panel->need_power_on_backlight && bl_lvl ||
+		(!strcmp(panel->name,"samsung s643xy05 samsung fhd video panel") /*&& (skip_backlight == 0 || fppress == 1)*/)) {
 		panel->need_power_on_backlight = false;
 		rc = dsi_display_clk_ctrl(dsi_display->dsi_clk_handle,
 			DSI_CORE_CLK, DSI_CLK_ON);
@@ -995,6 +996,12 @@ int dsi_display_check_status(struct drm_connector *connector, void *display,
 			(panel->panel_mode == DSI_OP_VIDEO_MODE))
 		te_rechecks = 0;
 
+#ifdef OPLUS_BUG_STABILITY
+	if (!strcmp(panel->oplus_priv.vendor_name,"AMS644VA04") ||
+		strstr(panel->oplus_priv.vendor_name,"NT36523")) {
+		te_rechecks = MAX_TE_RECHECKS;
+	}
+#endif /*OPLUS_BUG_STABILITY*/
 	ret = dsi_display_clk_ctrl(dsi_display->dsi_clk_handle,
 		DSI_ALL_CLKS, DSI_CLK_ON);
 	if (ret)
@@ -4987,10 +4994,21 @@ static int dsi_display_dynamic_clk_switch_vid(struct dsi_display *display,
 	dsi_display_mask_ctrl_error_interrupts(display, mask, true);
 
 	/* update the phy timings based on new mode */
+#ifdef OPLUS_BUG_STABILITY
+	if (!strcmp(display->panel->oplus_priv.vendor_name,"AMS644VA04")) {
+		DSI_INFO("samsung ramless oled enable lp11 phy timing is fixed!\n");
+	} else {
+		display_for_each_ctrl(i, display) {
+			ctrl = &display->ctrl[i];
+			dsi_phy_update_phy_timings(ctrl->phy, &display->config);
+		}
+	}
+#else
 	display_for_each_ctrl(i, display) {
 		ctrl = &display->ctrl[i];
 		dsi_phy_update_phy_timings(ctrl->phy, &display->config);
 	}
+#endif /*OPLUS_BUG_STABILITY*/
 
 	/* back up existing rates to handle failure case */
 	bkp_freq.byte_clk_rate = m_ctrl->ctrl->clk_freq.byte_clk_rate;

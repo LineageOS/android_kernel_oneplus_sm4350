@@ -7,3 +7,5 @@
 #include "at_camera_setting/ov48b_setting.h"
 #include "at_camera_setting/imx471_setting.h"
 #include "at_camera_setting/ov13b10_setting.h"
+#include "at_camera_setting/ov16a1q_setting.h"
+#include "at_camera_setting/ov64b_setting.h"

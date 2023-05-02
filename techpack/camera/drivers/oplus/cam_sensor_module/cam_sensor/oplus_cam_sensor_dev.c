@@ -15,8 +15,10 @@
 #define OV02B10_SENSOR_ID		0x002B
 #define GC02M1B_SENSOR_ID		0x02e0
 #define OV48B_SENSOR_ID			0x5648
+#define OV64B_SENSOR_ID			0x5664
 #define IMX471_SENSOR_ID		0x0471
 #define OV13B10_SENSOR_ID		0x0D42
+#define OV16A1Q_SENSOR_ID		0x1641
 
 struct cam_sensor_settings sensor_settings = {
 #include "CAM_SENSOR_SETTINGS.h"
@@ -32,6 +34,8 @@ struct cam_sensor_settings sensor_init_settings = {
 #include "init_camera_setting/ov48b_setting.h"
 #include "init_camera_setting/imx471_setting.h"
 #include "init_camera_setting/ov13b10_setting.h"
+#include "init_camera_setting/ov16a1q_setting.h"
+#include "init_camera_setting/ov64b_setting.h"
 };
 
 /* Add for AT camera test */
@@ -85,6 +89,12 @@ long oplus_cam_sensor_subdev_ioctl(struct v4l2_subdev *sd,
 			break;
 		case OV13B10_SENSOR_ID:
 			ptr = &sensor_settings.ov13b10_setting;
+			break;
+		case OV16A1Q_SENSOR_ID:
+			ptr = &sensor_settings.ov16a1q_setting;
+			break;
+		case OV64B_SENSOR_ID:
+			ptr = &sensor_settings.ov64b_setting;
 			break;
 		default:
 			break;
@@ -183,6 +193,14 @@ int sensor_start_thread(void *arg) {
 			case OV13B10_SENSOR_ID:
 				ptr = &sensor_init_settings.ov13b10_setting;
 				CAM_INFO(CAM_SENSOR, "OV13B10_SENSOR_ID");
+				break;
+			case OV64B_SENSOR_ID:
+				ptr = &sensor_init_settings.ov64b_setting;
+				CAM_INFO(CAM_SENSOR, "OV64B_SENSOR_ID");
+				break;
+			case OV16A1Q_SENSOR_ID:
+				ptr = &sensor_init_settings.ov16a1q_setting;
+				CAM_INFO(CAM_SENSOR, "OV16A1Q_SENSOR_ID");
 				break;
 			default:
 			    CAM_INFO(CAM_SENSOR, "no matching sensor_id");
