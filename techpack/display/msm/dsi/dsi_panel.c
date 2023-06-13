@@ -471,15 +471,16 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 {
 	int rc = 0;
 
-	if (panel->is_twm_en || panel->skip_panel_off) {
-		DSI_DEBUG("TWM Enabled, skip panel power off\n");
-		return rc;
-	}
 #ifdef OPLUS_FEATURE_TP_BASIC
 	int mode = 0;
 	int blank;
 	struct msm_drm_notifier notifier_data;
 #endif /* OPLUS_FEATURE_TP_BASIC */
+
+	if (panel->is_twm_en || panel->skip_panel_off) {
+		DSI_DEBUG("TWM Enabled, skip panel power off\n");
+		return rc;
+	}
 
 #ifdef OPLUS_BUG_STABILITY
 	pr_err("debug for dsi_panel_power_off\n");
