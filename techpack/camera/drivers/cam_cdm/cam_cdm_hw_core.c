@@ -2227,7 +2227,7 @@ static int cam_hw_cdm_component_bind(struct device *dev,
 				sizeof(cdm_core->name));
 		snprintf(work_q_name + len, sizeof(work_q_name) - len, "%d", i);
 		cdm_core->bl_fifo[i].work_queue = alloc_workqueue(work_q_name,
-				WQ_UNBOUND | WQ_MEM_RECLAIM | WQ_SYSFS,
+				WQ_UNBOUND | WQ_MEM_RECLAIM | WQ_SYSFS | WQ_HIGHPRI,
 				CAM_CDM_INFLIGHT_WORKS);
 		if (!cdm_core->bl_fifo[i].work_queue) {
 			CAM_ERR(CAM_CDM,
