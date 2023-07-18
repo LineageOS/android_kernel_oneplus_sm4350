@@ -385,4 +385,8 @@
         pinctrl-0= <&rf_con_test_ant7_active>;
 	};
 };
+
+&sdhc_2 {
+	cd-gpios = <&tlmm 94 GPIO_ACTIVE_HIGH>;
+};
 //#endif /*OPLUS_FEATURE_RF_CALBLE*/
