@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "84e009c9_2b904fd4",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 18745
+      },
+      "writtenOn": "2023-10-03T18:44:59Z",
+      "side": 1,
+      "message": "Camera works fine with these changes",
+      "revId": "815960525ed6eb470ff586e3e4e38a9a136a1312",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
