@@ -41,7 +41,7 @@
 
 struct oplus_chg_chip *g_oplus_chip = NULL;
 bool fg_oplus_set_input_current = false;
-static qc_9V_request = false;
+static bool qc_9V_request = false;
 
 extern int qpnp_get_prop_charger_voltage_now(void);
 extern bool oplus_get_otg_switch_status(void);
