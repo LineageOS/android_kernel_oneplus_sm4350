@@ -791,7 +791,8 @@ static int _sde_connector_update_bl_scale(struct sde_connector *c_conn)
 	c_conn->unset_bl_level = 0;
 
 #ifdef OPLUS_BUG_STABILITY
-	mutex_unlock(&bd->update_lock);
+	if (c_conn->connector_type == DRM_MODE_CONNECTOR_DSI)
+		mutex_unlock(&bd->update_lock);
 #endif /* OPLUS_BUG_STABILITY */
 
 	return rc;
