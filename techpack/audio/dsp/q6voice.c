@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022-2023, Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2024, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 #include <linux/slab.h>
 #include <linux/kthread.h>
@@ -6898,6 +6898,7 @@ int voc_set_device_config(uint32_t session_id, uint8_t path_dir,
 			  struct media_format_info *finfo)
 {
 	struct voice_data *v = voice_get_session(session_id);
+	int ret = 0;
 
 	if (v == NULL) {
 		pr_err("%s: Invalid session_id 0x%x\n", __func__, session_id);
@@ -6929,12 +6930,12 @@ int voc_set_device_config(uint32_t session_id, uint8_t path_dir,
 		break;
 	default:
 		pr_err("%s: Invalid path_dir %d\n", __func__, path_dir);
-		return -EINVAL;
+		ret = -EINVAL;
 	}
 
 	mutex_unlock(&v->lock);
 
-	return 0;
+	return ret;
 }
 EXPORT_SYMBOL(voc_set_device_config);
 
@@ -8092,7 +8093,7 @@ static int32_t qdsp_cvs_callback(struct apr_client_data *data, void *priv)
 			 VSS_ISTREAM_EVT_OOB_NOTIFY_ENC_BUFFER_READY) {
 		int ret = 0;
 		u16 cvs_handle;
-		uint32_t *cvs_voc_pkt;
+		uint32_t *cvs_voc_pkt, tot_buf_sz;
 		struct cvs_enc_buffer_consumed_cmd send_enc_buf_consumed_cmd;
 		void *apr_cvs;
 
@@ -8121,9 +8122,14 @@ static int32_t qdsp_cvs_callback(struct apr_client_data *data, void *priv)
 			VSS_ISTREAM_EVT_OOB_NOTIFY_ENC_BUFFER_CONSUMED;
 
 		cvs_voc_pkt = v->shmem_info.sh_buf.buf[1].data;
+
+		if (__builtin_add_overflow(cvs_voc_pkt[2], 3 * sizeof(uint32_t), &tot_buf_sz)) {
+			 pr_err("%s: integer overflow detected\n", __func__);
+			 return -EINVAL;
+		}
+
 		if (cvs_voc_pkt != NULL &&  common.mvs_info.ul_cb != NULL) {
-			if (v->shmem_info.sh_buf.buf[1].size <
-			    ((3 * sizeof(uint32_t)) + cvs_voc_pkt[2])) {
+			if (v->shmem_info.sh_buf.buf[1].size < tot_buf_sz) {
 				pr_err("%s: invalid voc pkt size\n", __func__);
 				return -EINVAL;
 			}
