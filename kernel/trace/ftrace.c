@@ -1554,7 +1554,7 @@ unsigned long ftrace_location_range(unsigned long start, unsigned long end)
 	struct dyn_ftrace key;
 	unsigned long ip = 0;
 
-	preempt_disable_notrace();
+	rcu_read_lock();
 	key.ip = start;
 	key.flags = end;	/* overload flags, as it is unsigned long */
 
@@ -1572,7 +1572,7 @@ unsigned long ftrace_location_range(unsigned long start, unsigned long end)
 			break;
 		}
 	}
-	preempt_enable_notrace();
+	rcu_read_unlock();
 	return ip;
 }
 
@@ -4131,9 +4131,6 @@ ftrace_mod_callback(struct trace_array *tr, struct ftrace_hash *hash,
 {
 	char *func;
 	int ret;
-
-	if (!tr)
-		return -ENODEV;
 
 	/* match_records() modifies func, and we need the original */
 	func = kstrdup(func_orig, GFP_KERNEL);

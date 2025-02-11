@@ -1197,11 +1197,6 @@ static int check_extent_item(struct extent_buffer *leaf,
 					   dref_offset, fs_info->sectorsize);
 				return -EUCLEAN;
 			}
-			if (unlikely(btrfs_extent_data_ref_count(leaf, dref) == 0)) {
-				extent_err(leaf, slot,
-			"invalid data ref count, should have non-zero value");
-				return -EUCLEAN;
-			}
 			inline_refs += btrfs_extent_data_ref_count(leaf, dref);
 			break;
 		/* Contains parent bytenr and ref count */
@@ -1211,11 +1206,6 @@ static int check_extent_item(struct extent_buffer *leaf,
 				extent_err(leaf, slot,
 		"invalid data parent bytenr, have %llu expect aligned to %u",
 					   inline_offset, fs_info->sectorsize);
-				return -EUCLEAN;
-			}
-			if (unlikely(btrfs_shared_data_ref_count(leaf, sref) == 0)) {
-				extent_err(leaf, slot,
-			"invalid shared data ref count, should have non-zero value");
 				return -EUCLEAN;
 			}
 			inline_refs += btrfs_shared_data_ref_count(leaf, sref);
@@ -1269,18 +1259,8 @@ static int check_simple_keyed_refs(struct extent_buffer *leaf,
 {
 	u32 expect_item_size = 0;
 
-	if (key->type == BTRFS_SHARED_DATA_REF_KEY) {
-		struct btrfs_shared_data_ref *sref;
-
-		sref = btrfs_item_ptr(leaf, slot, struct btrfs_shared_data_ref);
-		if (unlikely(btrfs_shared_data_ref_count(leaf, sref) == 0)) {
-			extent_err(leaf, slot,
-		"invalid shared data backref count, should have non-zero value");
-			return -EUCLEAN;
-		}
-
+	if (key->type == BTRFS_SHARED_DATA_REF_KEY)
 		expect_item_size = sizeof(struct btrfs_shared_data_ref);
-	}
 
 	if (btrfs_item_size_nr(leaf, slot) != expect_item_size) {
 		generic_err(leaf, slot,
@@ -1338,11 +1318,6 @@ static int check_extent_data_ref(struct extent_buffer *leaf,
 			extent_err(leaf, slot,
 	"invalid extent data backref offset, have %llu expect aligned to %u",
 				   offset, leaf->fs_info->sectorsize);
-			return -EUCLEAN;
-		}
-		if (unlikely(btrfs_extent_data_ref_count(leaf, dref) == 0)) {
-			extent_err(leaf, slot,
-	"invalid extent data backref count, should have non-zero value");
 			return -EUCLEAN;
 		}
 	}

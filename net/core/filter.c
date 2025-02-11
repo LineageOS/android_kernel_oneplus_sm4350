@@ -2221,16 +2221,18 @@ BPF_CALL_2(bpf_msg_cork_bytes, struct sk_msg *, msg, u32, bytes)
 
 static void sk_msg_reset_curr(struct sk_msg *msg)
 {
-	if (!msg->sg.size) {
-		msg->sg.curr = msg->sg.start;
-		msg->sg.copybreak = 0;
-	} else {
-		u32 i = msg->sg.end;
+	u32 i = msg->sg.start;
+	u32 len = 0;
 
-		sk_msg_iter_var_prev(i);
-		msg->sg.curr = i;
-		msg->sg.copybreak = msg->sg.data[i].length;
-	}
+	do {
+		len += sk_msg_elem(msg, i)->length;
+		sk_msg_iter_var_next(i);
+		if (len >= msg->sg.size)
+			break;
+	} while (i != msg->sg.end);
+
+	msg->sg.curr = i;
+	msg->sg.copybreak = 0;
 }
 
 static const struct bpf_func_proto bpf_msg_cork_bytes_proto = {
@@ -2390,7 +2392,7 @@ BPF_CALL_4(bpf_msg_push_data, struct sk_msg *, msg, u32, start,
 		sk_msg_iter_var_next(i);
 	} while (i != msg->sg.end);
 
-	if (start > offset + l)
+	if (start >= offset + l)
 		return -EINVAL;
 
 	space = MAX_MSG_FRAGS - sk_msg_elem_used(msg);
@@ -2415,8 +2417,6 @@ BPF_CALL_4(bpf_msg_push_data, struct sk_msg *, msg, u32, start,
 
 		raw = page_address(page);
 
-		if (i == msg->sg.end)
-			sk_msg_iter_var_prev(i);
 		psge = sk_msg_elem(msg, i);
 		front = start - offset;
 		back = psge->length - front;
@@ -2433,13 +2433,7 @@ BPF_CALL_4(bpf_msg_push_data, struct sk_msg *, msg, u32, start,
 		}
 
 		put_page(sg_page(psge));
-		new = i;
-		goto place_new;
-	}
-
-	if (start - offset) {
-		if (i == msg->sg.end)
-			sk_msg_iter_var_prev(i);
+	} else if (start - offset) {
 		psge = sk_msg_elem(msg, i);
 		rsge = sk_msg_elem_cpy(msg, i);
 
@@ -2450,44 +2444,39 @@ BPF_CALL_4(bpf_msg_push_data, struct sk_msg *, msg, u32, start,
 		sk_msg_iter_var_next(i);
 		sg_unmark_end(psge);
 		sg_unmark_end(&rsge);
+		sk_msg_iter_next(msg, end);
 	}
 
 	/* Slot(s) to place newly allocated data */
-	sk_msg_iter_next(msg, end);
 	new = i;
-	sk_msg_iter_var_next(i);
-
-	if (i == msg->sg.end) {
-		if (!rsge.length)
-			goto place_new;
-		sk_msg_iter_next(msg, end);
-		goto place_new;
-	}
 
 	/* Shift one or two slots as needed */
-	sge = sk_msg_elem_cpy(msg, new);
-	sg_unmark_end(&sge);
+	if (!copy) {
+		sge = sk_msg_elem_cpy(msg, i);
 
-	nsge = sk_msg_elem_cpy(msg, i);
-	if (rsge.length) {
 		sk_msg_iter_var_next(i);
-		nnsge = sk_msg_elem_cpy(msg, i);
+		sg_unmark_end(&sge);
 		sk_msg_iter_next(msg, end);
-	}
 
-	while (i != msg->sg.end) {
-		msg->sg.data[i] = sge;
-		sge = nsge;
-		sk_msg_iter_var_next(i);
+		nsge = sk_msg_elem_cpy(msg, i);
 		if (rsge.length) {
-			nsge = nnsge;
+			sk_msg_iter_var_next(i);
 			nnsge = sk_msg_elem_cpy(msg, i);
-		} else {
-			nsge = sk_msg_elem_cpy(msg, i);
+		}
+
+		while (i != msg->sg.end) {
+			msg->sg.data[i] = sge;
+			sge = nsge;
+			sk_msg_iter_var_next(i);
+			if (rsge.length) {
+				nsge = nnsge;
+				nnsge = sk_msg_elem_cpy(msg, i);
+			} else {
+				nsge = sk_msg_elem_cpy(msg, i);
+			}
 		}
 	}
 
-place_new:
 	/* Place newly allocated data buffer */
 	sk_mem_charge(msg->sk, len);
 	msg->sg.size += len;
@@ -2516,10 +2505,8 @@ static const struct bpf_func_proto bpf_msg_push_data_proto = {
 
 static void sk_msg_shift_left(struct sk_msg *msg, int i)
 {
-	struct scatterlist *sge = sk_msg_elem(msg, i);
 	int prev;
 
-	put_page(sg_page(sge));
 	do {
 		prev = i;
 		sk_msg_iter_var_next(i);
@@ -2571,7 +2558,7 @@ BPF_CALL_4(bpf_msg_pop_data, struct sk_msg *, msg, u32, start,
 	} while (i != msg->sg.end);
 
 	/* Bounds checks: start and pop must be inside message */
-	if (start >= offset + l || last > msg->sg.size)
+	if (start >= offset + l || last >= msg->sg.size)
 		return -EINVAL;
 
 	space = MAX_MSG_FRAGS - sk_msg_elem_used(msg);
@@ -2600,12 +2587,12 @@ BPF_CALL_4(bpf_msg_pop_data, struct sk_msg *, msg, u32, start,
 	 */
 	if (start != offset) {
 		struct scatterlist *nsge, *sge = sk_msg_elem(msg, i);
-		int a = start - offset;
+		int a = start;
 		int b = sge->length - pop - a;
 
 		sk_msg_iter_var_next(i);
 
-		if (b > 0) {
+		if (pop < sge->length - a) {
 			if (space) {
 				sge->length = a;
 				sk_msg_shift_right(msg, i);
@@ -2624,6 +2611,7 @@ BPF_CALL_4(bpf_msg_pop_data, struct sk_msg *, msg, u32, start,
 				if (unlikely(!page))
 					return -ENOMEM;
 
+				sge->length = a;
 				orig = sg_page(sge);
 				from = sg_virt(sge);
 				to = page_address(page);
@@ -2633,7 +2621,7 @@ BPF_CALL_4(bpf_msg_pop_data, struct sk_msg *, msg, u32, start,
 				put_page(orig);
 			}
 			pop = 0;
-		} else {
+		} else if (pop >= sge->length - a) {
 			pop -= (sge->length - a);
 			sge->length = a;
 		}
@@ -2667,6 +2655,7 @@ BPF_CALL_4(bpf_msg_pop_data, struct sk_msg *, msg, u32, start,
 			pop -= sge->length;
 			sk_msg_shift_left(msg, i);
 		}
+		sk_msg_iter_var_next(i);
 	}
 
 	sk_mem_uncharge(msg->sk, len - pop);
@@ -3252,22 +3241,13 @@ static const struct bpf_func_proto bpf_skb_adjust_room_proto = {
 
 static u32 __bpf_skb_min_len(const struct sk_buff *skb)
 {
-	int offset = skb_network_offset(skb);
-	u32 min_len = 0;
+	u32 min_len = skb_network_offset(skb);
 
-	if (offset > 0)
-		min_len = offset;
-	if (skb_transport_header_was_set(skb)) {
-		offset = skb_transport_offset(skb);
-		if (offset > 0)
-			min_len = offset;
-	}
-	if (skb->ip_summed == CHECKSUM_PARTIAL) {
-		offset = skb_checksum_start_offset(skb) +
-			 skb->csum_offset + sizeof(__sum16);
-		if (offset > 0)
-			min_len = offset;
-	}
+	if (skb_transport_header_was_set(skb))
+		min_len = skb_transport_offset(skb);
+	if (skb->ip_summed == CHECKSUM_PARTIAL)
+		min_len = skb_checksum_start_offset(skb) +
+			  skb->csum_offset + sizeof(__sum16);
 	return min_len;
 }
 

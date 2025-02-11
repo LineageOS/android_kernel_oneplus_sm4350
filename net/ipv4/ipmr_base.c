@@ -301,8 +301,7 @@ int mr_table_dump(struct mr_table *mrt, struct sk_buff *skb,
 	if (filter->filter_set)
 		flags |= NLM_F_DUMP_FILTERED;
 
-	list_for_each_entry_rcu(mfc, &mrt->mfc_cache_list, list,
-				lockdep_rtnl_is_held()) {
+	list_for_each_entry_rcu(mfc, &mrt->mfc_cache_list, list) {
 		if (e < s_e)
 			goto next_entry;
 		if (filter->dev &&

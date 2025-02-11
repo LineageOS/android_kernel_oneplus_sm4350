@@ -76,7 +76,7 @@ static inline void nilfs_put_page(struct page *page)
  */
 static unsigned int nilfs_last_byte(struct inode *inode, unsigned long page_nr)
 {
-	u64 last_byte = inode->i_size;
+	unsigned int last_byte = inode->i_size;
 
 	last_byte -= page_nr << PAGE_SHIFT;
 	if (last_byte > PAGE_SIZE)

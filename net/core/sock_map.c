@@ -152,7 +152,6 @@ static void sock_map_del_link(struct sock *sk,
 				strp_stop = true;
 			list_del(&link->list);
 			sk_psock_free_link(link);
-			break;
 		}
 	}
 	spin_unlock_bh(&psock->link_lock);

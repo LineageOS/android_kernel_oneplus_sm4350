@@ -125,7 +125,6 @@ struct nvme_dev {
 	/* host memory buffer support: */
 	u64 host_mem_size;
 	u32 nr_host_mem_descs;
-	u32 host_mem_descs_size;
 	dma_addr_t host_mem_descs_dma;
 	struct nvme_host_mem_buf_desc *host_mem_descs;
 	void **host_mem_desc_bufs;
@@ -1925,10 +1924,10 @@ static void nvme_free_host_mem(struct nvme_dev *dev)
 
 	kfree(dev->host_mem_desc_bufs);
 	dev->host_mem_desc_bufs = NULL;
-	dma_free_coherent(dev->dev, dev->host_mem_descs_size,
+	dma_free_coherent(dev->dev,
+			dev->nr_host_mem_descs * sizeof(*dev->host_mem_descs),
 			dev->host_mem_descs, dev->host_mem_descs_dma);
 	dev->host_mem_descs = NULL;
-	dev->host_mem_descs_size = 0;
 	dev->nr_host_mem_descs = 0;
 }
 
@@ -1936,7 +1935,7 @@ static int __nvme_alloc_host_mem(struct nvme_dev *dev, u64 preferred,
 		u32 chunk_size)
 {
 	struct nvme_host_mem_buf_desc *descs;
-	u32 max_entries, len, descs_size;
+	u32 max_entries, len;
 	dma_addr_t descs_dma;
 	int i = 0;
 	void **bufs;
@@ -1949,9 +1948,8 @@ static int __nvme_alloc_host_mem(struct nvme_dev *dev, u64 preferred,
 	if (dev->ctrl.hmmaxd && dev->ctrl.hmmaxd < max_entries)
 		max_entries = dev->ctrl.hmmaxd;
 
-	descs_size = max_entries * sizeof(*descs);
-	descs = dma_alloc_coherent(dev->dev, descs_size, &descs_dma,
-			GFP_KERNEL);
+	descs = dma_alloc_coherent(dev->dev, max_entries * sizeof(*descs),
+				   &descs_dma, GFP_KERNEL);
 	if (!descs)
 		goto out;
 
@@ -1980,7 +1978,6 @@ static int __nvme_alloc_host_mem(struct nvme_dev *dev, u64 preferred,
 	dev->host_mem_size = size;
 	dev->host_mem_descs = descs;
 	dev->host_mem_descs_dma = descs_dma;
-	dev->host_mem_descs_size = descs_size;
 	dev->host_mem_desc_bufs = bufs;
 	return 0;
 
@@ -1995,7 +1992,8 @@ out_free_bufs:
 
 	kfree(bufs);
 out_free_descs:
-	dma_free_coherent(dev->dev, descs_size, descs, descs_dma);
+	dma_free_coherent(dev->dev, max_entries * sizeof(*descs), descs,
+			descs_dma);
 out:
 	dev->host_mem_descs = NULL;
 	return -ENOMEM;

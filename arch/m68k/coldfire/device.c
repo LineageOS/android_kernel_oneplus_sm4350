@@ -92,7 +92,7 @@ static struct platform_device mcf_uart = {
 	.dev.platform_data	= mcf_uart_platform_data,
 };
 
-#ifdef MCFFEC_BASE0
+#if IS_ENABLED(CONFIG_FEC)
 
 #ifdef CONFIG_M5441x
 #define FEC_NAME	"enet-fec"
@@ -144,7 +144,6 @@ static struct platform_device mcf_fec0 = {
 		.platform_data		= FEC_PDATA,
 	}
 };
-#endif /* MCFFEC_BASE0 */
 
 #ifdef MCFFEC_BASE1
 static struct resource mcf_fec1_resources[] = {
@@ -182,6 +181,7 @@ static struct platform_device mcf_fec1 = {
 	}
 };
 #endif /* MCFFEC_BASE1 */
+#endif /* CONFIG_FEC */
 
 #if IS_ENABLED(CONFIG_SPI_COLDFIRE_QSPI)
 /*
@@ -556,11 +556,11 @@ static struct platform_device mcf_edma = {
 
 static struct platform_device *mcf_devices[] __initdata = {
 	&mcf_uart,
-#ifdef MCFFEC_BASE0
+#if IS_ENABLED(CONFIG_FEC)
 	&mcf_fec0,
-#endif
 #ifdef MCFFEC_BASE1
 	&mcf_fec1,
+#endif
 #endif
 #if IS_ENABLED(CONFIG_SPI_COLDFIRE_QSPI)
 	&mcf_qspi,
