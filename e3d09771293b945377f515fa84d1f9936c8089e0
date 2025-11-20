@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "99724e98_137e37c5",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 4550
+      },
+      "writtenOn": "2025-11-20T09:06:31Z",
+      "side": 1,
+      "message": "Forgot to set TARGET_BUILD_VARIANT\u003duser? You\u0027re enabling debugfs",
+      "revId": "e3d09771293b945377f515fa84d1f9936c8089e0",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
